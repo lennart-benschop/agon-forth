@@ -486,6 +486,12 @@ VARIABLE INCLUDE-POINTER ( --- a-addr)
 : FLOAD ( --- )
   OPEN OK ;
 
+VARIABLE COLDSTARTUP ( --- addr)
+-2 ALLOT-T
+LABEL COLDSTARTADDR ENDASM
+02 ALLOT-T
+\ Set when system is started up.
+
 : QUIT ( --- )
 \G This word resets the return stack, resets the compiler state, the include
 \G buffer and then it reads and interprets terminal input.
@@ -493,8 +499,13 @@ VARIABLE INCLUDE-POINTER ( --- a-addr)
   TIB SRC ! 0 SID !
   INCLUDE-BUFFER INCLUDE-POINTER !  
   BEGIN
-   REFILL DROP ['] INTERPRET CATCH DUP 0= IF
-         DROP STATE @ 0= IF ." OK" THEN CR
+      CURFILENAME C@ COLDSTARTUP @ AND IF
+	  COLDSTARTUP OFF
+	  ['] OK \ Load any file on command line.
+      ELSE
+	  REFILL DROP ['] INTERPRET
+      THEN CATCH DUP 0= IF
+	  DROP STATE @ 0= IF ." OK" THEN CR
    ELSE \ throw occured.
      DUP -2 = IF
       ERROR$ @ COUNT TYPE SPACE
@@ -523,7 +534,7 @@ VARIABLE INCLUDE-POINTER ( --- a-addr)
 
 : F-STARTUP
 \G This is the first colon definition called after a (cold) startup.    
-    ." Agon 16-bit Z80 Forth v0.01, 2023-01-15 GPLv3" CR
+    ." Agon 16-bit Z80 Forth v0.02, 2023-01-16 GPLv3" CR
     ." Copyright (C) 2023 L.C. Benschop, Brad Rodriguez" CR
     WARM ;
 
@@ -533,6 +544,25 @@ CODE COLD ( --- )
     LD S0ADDR (), SP
     LD IX, $FFF0
     LD R0ADDR (), IX
+    LD DE, $FFFF
+    LD COLDSTARTADDR (), DE
+    LD DE, CURFILEADDR
+    BEGIN
+	LD .LIL A, (HL)
+	INC .LIL HL
+	CP $20             \ Skip spaces
+    0<> UNTIL
+    DEC .LIL HL
+    BEGIN
+	LD .LIL A, (HL)    \ Copy next parameter on command line to file buf.
+	CP $21
+	U>= WHILE
+	    INC .LIL HL
+	    LD (DE), A
+	    INC DE
+    REPEAT
+    XOR A
+    LD (DE), A
     A; $C3 C, F-STARTUP
 END-CODE
 

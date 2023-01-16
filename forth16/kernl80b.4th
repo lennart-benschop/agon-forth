@@ -492,8 +492,10 @@ VARIABLE  OSSTRING ( --- addr)
 78 ALLOT-T
 
 VARIABLE CURFILENAME ( --- addr)
+-2 ALLOT-T
+LABEL CURFILEADDR ENDASM
 \G Buffer containing the current file name
-78 ALLOT-T
+80 ALLOT-T
 
 : >ASCIIZ ( c-addr1 u1 c-addr2 ---)
 \G Store the string defined by c-addr1 and u1 as null terminated string at

@@ -45,8 +45,8 @@ The `forth16` subdirectory contains the following files:
 
 ### Prerequisites
 
-You need Agon MOS version of at least 1.02. 
-You need text editor to edit FORTH source files on Agon. The follwong repository contains the Nanno.bin file that you can install on the
+You need Agon MOS of at least version 1.02. 
+You need a text editor to edit FORTH source files on Agon. The follwong repository contains the Nanno.bin file that you can install on the
 micro-SD card in the MOS subdirectory.
 https://github.com/lennart-benschop/agon-utilities
 
@@ -55,7 +55,7 @@ https://github.com/lennart-benschop/agon-utilities
 ## Starting up.
 
 Make sure you have the files on the SD-card, in particular
-the forth80,bin file. When your autoexec.txt causes your machine to start up in BASIC, make sure to leave BASIC by typing the
+the forth.bin file. When your autoexec.txt causes your machine to start up in BASIC, make sure to leave BASIC by typing the
 following command: `*BYE`
 
 At the MOS command prompt type:
@@ -66,9 +66,15 @@ Then type the command:
 
 run
 
+Alternativly you can automatically load a Forth source file on startup. This is especially useful if you run Forth 
+in autoexec.txt. Example
+```
+run &40000 tetris.4th
+```
+
 You should now see a message like this:
 ```
-Agon 16-bit Z80 Forth, 2023-01-15 GPLv3
+Agon 16-bit Z80 Forth, 2023-01-16 GPLv3
 Copyright 2022 L.C. Benschop, Brad Rodriguez
 ```
 
