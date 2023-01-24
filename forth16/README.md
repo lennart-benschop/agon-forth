@@ -42,6 +42,14 @@ The `forth16` subdirectory contains the following files:
 * testcode.4th example of FORTH words written in Z-80 assembler. Can be loaded from Agon FORTH.
 * kernl80a.4th, kernl80b.4th, kernl80c.4th, and extend80.4th: sourcees of
   Cerberus Z80 FORTH.
+* graphics.4th Graphics library, including turtle graphics.
+* grpdemo.4th Graphics demo, runs on top of graphics.4th
+* dodemo.4th. Load graphics.4th and grpdemo.4th and then runs the demo. Put forth.bin, graphics.4th, grpdemo.4th and dodemo.4th all in one directory, then the following
+  commands run the demo.
+```
+load forth.bin
+run . dodemo.4th
+```
 
 ### Prerequisites
 
