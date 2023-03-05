@@ -30,11 +30,11 @@ VARIABLE COL 1 COL !
 
 : COLOURED-LINES
   PAGE 
-  480 0 DO
-    480 0 DO
-     NEXTCOL 0 I MOVETO 639 J LINETO
-    20 +LOOP
-  20 +LOOP PAUSE
+  1024 0 DO
+    1024 0 DO
+     NEXTCOL 0 I MOVETO 1279 J LINETO
+    32 +LOOP
+  32 +LOOP PAUSE
  ;
 
 
@@ -243,7 +243,7 @@ VARIABLE X4 VARIABLE Y4 \ Coordinates of all 4 corners of the rectangle.
 
 
 : RUN-DEMO
-  0 MODE \ Tests require mode 0.
+  3 MODE \ Tests require mode 0.
   CUROFF
   BEGIN 
     COLOURED-TEXT

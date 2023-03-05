@@ -444,7 +444,7 @@ Return the file-ID and the IO result. (ior=0 if success)
 CSP   --- a-addr                                                               
 This variable is used for stack checking between : and ;
 
-CURFILENAME   --- addr                                                         
+CURFILEADDR                                                                    
 Buffer containing the current file name
 
 CURRENT   --- addr                                                             

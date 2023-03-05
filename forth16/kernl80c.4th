@@ -533,7 +533,7 @@ LABEL COLDSTARTADDR ENDASM
 
 : F-STARTUP
 \G This is the first colon definition called after a (cold) startup.    
-    ." Agon 16-bit Z80 Forth v0.02, 2023-01-16 GPLv3" CR
+    ." Agon 16-bit Z80 Forth v0.04, 2023-03-05 GPLv3" CR
     ." Copyright (C) 2023 L.C. Benschop, Brad Rodriguez" CR
     WARM ;
 

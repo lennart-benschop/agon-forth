@@ -176,7 +176,7 @@ CONSTANT ROOT-WORDLIST ( --- wid )
    DUP I + C@ 0 <# # # #> TYPE
   LOOP
   16 0 DO
-   DUP I + C@ DUP 31 < OVER 127 = OR IF DROP ." ." ELSE EMIT THEN
+   DUP I + C@ DUP 32 < OVER 127 = OR IF DROP ." ." ELSE EMIT THEN
   LOOP
   16 + R> BASE ! ;
 

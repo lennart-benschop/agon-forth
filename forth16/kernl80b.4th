@@ -586,7 +586,7 @@ VARIABLE FID
     ELSE
 	DROP DROP
     THEN	
-    10 SWAP FPUTC 0 \ Write linefeed.
+    13 OVER FPUTC 10 SWAP FPUTC 0 \ Write linefeed.
 ;
 
 : OPEN-FILE ( c-addr u mode --- fid ior)

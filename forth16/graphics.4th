@@ -4,17 +4,10 @@ FORGET HXS
 DECIMAL
 
 VARIABLE HXS VARIABLE HYS \ Half X size and half Y size of screen.
-256 HXS ! 192 HYS !
+640 HXS ! 512 HYS !
 : MODE ( n ---)
 \G Select graphics mode
-  22 EMIT DUP EMIT 
-  DUP 0= 
-   IF 320 HXS ! 240 HYS ! 
-    ELSE DUP 1 = IF 
-     256 HXS ! 192 HYS ! 
-    ELSE
-     160 HXS ! 100 HYS !
-  THEN THEN DROP ;
+  22 EMIT DUP EMIT ;
 
 : 2EMIT ( n ---)
 \G Emit n as two characters, LSB first.
@@ -33,24 +26,6 @@ VARIABLE HXS VARIABLE HYS \ Half X size and half Y size of screen.
 \G Draw a line to the given position.
   5 PLOT ;
 
-CREATE COLOUR-TAB
-     0 C,   0 C,   0 C,  \ Black
-   128 C,   0 C,   0 C,  \ Red
-     0 C, 128 C,   0 C,  \ Green
-   128 C, 128 C,   0 C,  \ Yellow
-     0 C,   0 C, 128 C,  \ Blue
-   128 C,   0 C, 128 C,  \ Magenta
-     0 C, 128 C, 128 C,  \ Cyan
-   128 C, 128 C, 128 C,  \ Light grey
-    64 C,  64 C,  64 C,  \ Dark gray
-   192 C,   0 C,   0 C,  \ Bright red
-     0 C, 192 C,   0 C,  \ Bright green
-   129 C, 192 C,   0 C,  \ Bright yellow
-     0 C,   0 C, 192 C,  \ Bright blue
-   192 C,   0 C, 192 C,  \ Bright magenta
-     0 C, 192 C, 192 C,  \ Bright cyan
-   192 C, 192 C, 192 C,  \ White
-
  0 CONSTANT BLACK
  1 CONSTANT RED
  2 CONSTANT GREEN
@@ -68,18 +43,13 @@ CREATE COLOUR-TAB
 14 CONSTANT BRIGHT-CYAN
 15 CONSTANT WHITE
 
-: SET-COLOUR ( c1 C2 ---)
-  CREATE SWAP C, C,
-  DOES> ( colour ---)
-  DUP C@ EMIT 1+ C@ EMIT 3 * COLOUR-TAB + DUP C@ EMIT 1+ DUP C@ EMIT
-  1+ C@ EMIT ;
-\G Set foregrond colour
-17 0 SET-COLOUR FG
-\G Set background colour
-17 1 SET-COLOUR BG
-\G Set graphics colour
-18 0 SET-COLOUR GC
 
+: FG ( c ---)
+  17 EMIT EMIT ;
+: BG ( c ---)
+  17 EMIT 128 + EMIT ;
+: GC ( c ---)
+  18 EMIT 0 EMIT EMIT ;
 
 CREATE SINTAB
 \ Table of fixed-point sine values (scaled to 16384)
@@ -146,7 +116,7 @@ VARIABLE POSY VARIABLE ERRY
 \G Translate turtle coordinates (0,0) at the centre, positive Y moves up,
 \G to VDP coordinates (0,0) at left top, positive Y moves down.
 \G also the turtle coordinates are 8x the pixel coordinates.
-  2/ 2/ 2/ HYS @ SWAP - SWAP 2/ 2/ 2/ HXS @ + SWAP ;
+  2/ 2/ HYS @ SWAP + SWAP 2/ 2/ HXS @ + SWAP ;
 
 : SETPOS ( x y ---)
 \G Set the turtle position to the given turtle coordinates.
