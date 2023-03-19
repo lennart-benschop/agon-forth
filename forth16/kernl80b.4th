@@ -316,20 +316,35 @@ VARIABLE DPL ( --- a-addr)
 
 \ PART 9: Character Input
 
+LABEL LAST-KEY
+01 ALLOT-T
+ENDASM
+
 CODE KEY ( --- c)
 \G Wait until a key is pressed and return the ASCII code
     PUSH IX
-    LD A, $8   
-    RST $8  \ Get index to sysvars
-    BEGIN
-	LD .LIL A, $05 (IX+)
-	AND A
-    0<> UNTIL
-    LD .LIL $05 (IX+), $00
+    LD A, $8
+    RST $8                
+    LD A, LAST-KEY ()
+    OR A
+    0= IF
+      BEGIN 
+	BEGIN
+	    LD .LIL A, $18 (IX+)
+	    OR A             \ Wait until key down.	    
+	0<> UNTIL
+	LD .LIL A, $5 (IX+)  \ Wait until non-zero code appears.
+	OR A
+      0<> UNTIL
+    THEN
+    LD .LIL $18 (IX+), $0     \ Clear the ASCII code.
+    LD .LIL $5 (IX+), $0     \ Clear the ASCII code.
     POP IX
-    PUSH BC
+    PUSH BC     
     LD B, 00
     LD C, A
+    XOR A
+    LD LAST-KEY (), A
     NEXT
 END-CODE    
 
@@ -343,8 +358,13 @@ CODE KEY? ( --- f)
     PUSH IX
     LD A, $8
     RST $8 \ Get index to sysvars.
-    LD .LIL A, $05 (IX+)
+    LD .LIL A, $18 (IX+)  \ Check key down.
     SUB $01  \ Carry only if A=0
+    U>= IF
+	LD .LIL A, $5 (IX+) \ Check non-zero ASCII code.
+	LD LAST-KEY (), A
+	SUB $01
+    THEN
     POP IX
     PUSH BC
     LD A, $FF
