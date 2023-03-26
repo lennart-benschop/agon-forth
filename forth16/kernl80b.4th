@@ -405,12 +405,16 @@ END-CODE
 	    IF \ CR
 		DROP SWAP DROP R> DROP SPACE EXIT      
 	    ELSE
+              DUP 31 > IF
 		DUP EMIT 
 		OVER R@ - IF   
 		    >R OVER OVER + R> SWAP C! 1+
 		ELSE
 		    DROP
 		THEN
+              ELSE
+                DROP
+              THEN
 	    THEN 
 	THEN 
     0 UNTIL         

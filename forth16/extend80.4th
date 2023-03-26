@@ -355,6 +355,7 @@ DEFINITIONS
     R> 0 BASE @ >R DECIMAL <# #S #> OSSTRING ASCIIZ> + >ASCIIZ
     R> BASE ! \ Add line number to OS string.
     OSSTRING 0 0 16 OSCALL -39 ?THROW
+    0 SYSVARS 5. D+ XC!
 ;
 
 : ED ( --- )
@@ -369,7 +370,7 @@ DEFINITIONS
 
 : CAT ( ---)
     \G Show  the disk catalog
-    CR 0 0 0 4 OSCALL DROP
+    CR S" ." OSSTRING >ASCIIZ OSSTRING 0 0 4 OSCALL DROP
 ;
 
 : MS ( n --- )
