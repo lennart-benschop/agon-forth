@@ -350,7 +350,17 @@ END-CODE
 
 CODE BYE ( --- )
 \G Exit Forth and return to the calling program.
-    RST .LIL $0
+    POP .LIL DE
+    POP .LIL HL
+    LD SP, HL
+    EX DE, HL
+    EX (SP), HL
+    LD .LIL HL, $0 A; $0 C,
+    POP .LIL DE
+    POP .LIL BC
+    POP .LIL IX
+    POP .LIL IY
+    RET .LIL
 END-CODE    
 
 CODE KEY? ( --- f)

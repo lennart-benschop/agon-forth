@@ -24,7 +24,7 @@ ASSEMBLE HEX
 
 \ PART 0: Boot vectors.
 ORIGIN ORG
- C3 C,  TRANSIENT COLD ASSEMBLER \ Jump to COLD entry point.
+ JP $4F A;
  5 ALLOT-T
  RST .LIL 8 RET A; \ RST 8 handler
  5 ALLOT-T
@@ -32,6 +32,18 @@ ORIGIN ORG
  2D ALLOT-T
  4D C, 4F C, 53 C, 0 C, 0 C, \ Agon MOS header at 64
  46 C, 4F C, 52 C, 54 C, 48 C, 2E C, 42 C, 49 C, 4E C, 0 C, \ FORTH.BIN
+\ Here we jump to at start (is at $4F).
+ PUSH .LIL IY
+ PUSH .LIL IX
+ PUSH .LIL BC
+ PUSH .LIL DE
+ LD IX, 0
+ ADD IX, SP
+ PUSH .LIL IX 
+ EX (SP), HL
+ PUSH .LIL HL
+ EX (SP), HL
+ A; C3 C,  TRANSIENT COLD ASSEMBLER \ Jump to COLD entry point.
 ENDASM
 
 DECIMAL
