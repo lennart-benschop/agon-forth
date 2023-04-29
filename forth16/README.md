@@ -54,7 +54,7 @@ run . dodemo.4th
 ### Prerequisites
 
 You need Agon MOS of at least version 1.02. 
-You need a text editor to edit FORTH source files on Agon. The follwong repository contains the Nanno.bin file that you can install on the
+You need a text editor to edit FORTH source files on Agon. The follwong repository contains the Nano.bin file that you can install on the
 micro-SD card in the MOS subdirectory.
 https://github.com/lennart-benschop/agon-utilities
 
@@ -74,7 +74,7 @@ Then type the command:
 
 run
 
-Alternativly you can automatically load a Forth source file on startup. This is especially useful if you run Forth 
+Alternatively you can automatically load a Forth source file on startup. This is especially useful if you run Forth 
 in autoexec.txt. Example
 ```
 run &40000 tetris.4th
@@ -106,7 +106,7 @@ Polish Notation. What you just typed:
   on the stack.
 `.` takes the top number from the stack and prints it.
 
-Whwat FORTH replied to you:
+What FORTH replied to you:
 
 `276` is the result of the `.` command the printed result of the multiplication.
 `OK` is a response to tell that there were no errors.
@@ -176,7 +176,7 @@ other key (pressing one further key resumes it).
 
 `FORGET <word>`
 
-This removes the specified word and any later definitions from the FDRTH
+This removes the specified word and any later definitions from the FORTH
 dictionary. When you look at the squares.4th file, you see that it starts
 with FORGET SQUARES. You can edit and reload that file many times and each
 time it will forget the old definition of SQUARES before compiling the new
@@ -248,8 +248,8 @@ inputs and produces one number n3 as a result.
 
 ## The assembler
 
-This ia a prefix assembler, like F-PC used to have. The assembler instructions
-look the same as you learned them, as opposed to mor tradiotnal FORTH
+This is a prefix assembler, like F-PC used to have. The assembler instructions
+look the same as you learned them, as opposed to more traditional FORTH
 assemblers, where instructions have a postfix notation. Postfix makes the
 implementation of the assembler simpler. In particular for the Z80, most
 FORTH assemblers either only implement the 8080 subset of instructions or use a strange mix of 8080 and Z80 mnemonics that are completely nonstandard.
@@ -276,7 +276,7 @@ However, there are a few small diferences:
   `BEGIN..WHILE..REPEATE` and `IF..ELSE..THEN` constructs.
   Jumps and calls to constant addresses are fine.
 
-  Later versions of the assembler my add labels and forward references.
+  Later versions of the assembler may add labels and forward references.
 
 Example code definition:
 ```
@@ -392,7 +392,7 @@ Parameter field: data belonging to the word. For colon definitions this
 Agon Z80 FORTH is cross-compiled (meta-compiled) from
 FORTH. Originally it was cross-compiled from gforth (a FORTH running
 under Linux), but the tools are designed such that they can also run
-from Agon Z80 FORTH itself. It can be corss-compiled in both ways.
+from Agon Z80 FORTH itself. It can be cross-compiled in both ways.
 
 Compiling occurs in two stages:
 - The cross-compile stage will produce a bare-bones FORTH system called
@@ -462,7 +462,7 @@ F-PC and like the one I now wrote for the Z-80.
 When I wanted to create a FORTH for the Cerberus-2080, I wanted to have it
 for the Z80 as that is the CPU that I am most familiar with and that IMHO
 is more suitable for running FORTH. Besides, Alexandre Dumont was already
-working on a FORRTH for the 65C02.
+working on a FORTH for the 65C02.
 
 I had a few loose requirements:
 * It would be a metacompiled FORTH, generated from an existing FORTH system.
@@ -486,7 +486,7 @@ I had a few loose requirements:
 * It had to be loosely ANS Forth based.
 * It had to have a prefix assembler, like F-PC.
 
-For Agon I want3d to stick with mnost features from Cerberus Z80 FORTH, except that
+For Agon I wanted to stick with mnost features from Cerberus Z80 FORTH, except that
 I decided not to include a text editor in Forth itself. A buffer to hold a large
 source file would take up too much addressing space. The good news is that
 it is easy for Agon to run the editor as an external program, even from within Forth.
