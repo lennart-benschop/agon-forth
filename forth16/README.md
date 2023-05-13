@@ -28,8 +28,7 @@ The `forth16` subdirectory contains the following files:
 * tester.4th and core.4th (a regression test suite). Note that this is
   by a different author and not covered by the GPLv3.
 * glosgen.4th and runglos.4th  Tools used to generate the glossary.txt file.
-  These cannot be run on Cerberus Z80 FORTH, but you can run them from gforth
-  or any other ANSI standard FORTH with the FILE extension wordset.
+  You can run doglos.4th to generate a glossary file on Agon FORTH itself.
 * crossz80.4th Can be run from gforth to generate Agon Z80 FORTH from
   source.
 * dometa.4th Can be run from Agon forth to generate Agon Z80 FORTH from
@@ -41,7 +40,7 @@ The `forth16` subdirectory contains the following files:
     be cross assembled and then the output checked with a disassembler.
 * testcode.4th example of FORTH words written in Z-80 assembler. Can be loaded from Agon FORTH.
 * kernl80a.4th, kernl80b.4th, kernl80c.4th, and extend80.4th: sourcees of
-  Cerberus Z80 FORTH.
+  Agon Z80 FORTH.
 * graphics.4th Graphics library, including turtle graphics.
 * grpdemo.4th Graphics demo, runs on top of graphics.4th
 * dodemo.4th. Load graphics.4th and grpdemo.4th and then runs the demo. Put forth.bin, graphics.4th, grpdemo.4th and dodemo.4th all in one directory, then the following
@@ -229,7 +228,7 @@ Save a memory region into the specified file. For example
 `SAVE-SYSTEM <name>`
 
 Save the current FORTH dictionary into the specified file. You can later
-load this file at the Cerberus command prompt and run it.
+load this file at the MOS prompt and run it.
 Example:
 `SAVE-SYSTEM myapp.bin`
 
@@ -398,7 +397,7 @@ Compiling occurs in two stages:
 - The cross-compile stage will produce a bare-bones FORTH system called
   kernel80.bin. This system misses many features, but it is powerful
   enough to load and compile its own extensions.
-- The extension stage will ALWAYS run on Cerberus 2080 (or an emulator of it),
+- The extension stage will ALWAYS run on Agon,
   even if kernel80.bin was generated from another FORTH version.
   The extension stage is started by running kernel80.bin and loading
   several FORTH source files from it. Those source files compile
@@ -486,16 +485,17 @@ I had a few loose requirements:
 * It had to be loosely ANS Forth based.
 * It had to have a prefix assembler, like F-PC.
 
-For Agon I wanted to stick with mnost features from Cerberus Z80 FORTH, except that
-I decided not to include a text editor in Forth itself. A buffer to hold a large
-source file would take up too much addressing space. The good news is that
-it is easy for Agon to run the editor as an external program, even from within Forth.
+For Agon I wanted to stick with mnost features from Cerberus Z80
+FORTH, except that I decided not to include a text editor in Forth
+itself. A buffer to hold a large source file would take up too much
+addressing space. The good news is that it is easy for Agon to run the
+editor as an external program, even from within Forth.
 
 I ended up using most of the primitives of Camel Forth, a FORTH
 written for the Z80 by Brad Radriguez in 1994 and 1995. Cerberus Z80
-Forth is NOT Camel Forth, it just contains code from it. I could have
-picked the Z80 primitives from my old ZX-Spectrum FORTH instead, but
-CamelForth promised to be faster.
+Forth and Agon Forth are NOT Camel Forth, it just contains code from
+it. I could have picked the Z80 primitives from my old ZX-Spectrum
+FORTH instead, but CamelForth promised to be faster.
 
 The main thing missing was a Z80 assembler. I could not find any good
 ones written in FORTH. The Z80 assembler I used for my ZX Spectrum
