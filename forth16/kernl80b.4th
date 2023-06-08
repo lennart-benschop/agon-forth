@@ -256,6 +256,10 @@ VARIABLE DPL ( --- a-addr)
 : HEX     ( --- )
 \G Set numerical conversion to hexadecimal.
   16 BASE ! ;
+  
+ : BINARY ( --- )
+\G Set numerical conversion to binary.
+2 BASE ! ;
 
 : HERE ( --- c-addr )
 \G The address of the dictionary pointer. New space is allocated here.
