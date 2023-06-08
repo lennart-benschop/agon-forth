@@ -46,13 +46,14 @@ CROSS-COMPILE
 \G Convert the counted string at c-addr to a double binary number.
 \G f is true if and only if the conversion was successful. DPL contains
 \G -1 if there was no point in the number, else the position of the point
-\G from the right. Special prefixes: # means decimal, $ means hex.
+\G from the right. Prefixes: # means decimal, $ means hex, $ means binary.
   -1 DPL !
   BASE @ >R
   COUNT
   OVER C@ 45 = DUP >R IF 1 - SWAP 1 + SWAP THEN \ Get any - sign
   OVER C@ 36 = IF 16 BASE ! 1 - SWAP 1 + SWAP THEN   \ $ sign for hex.
   OVER C@ 35 = IF 10 BASE ! 1 - SWAP 1 + SWAP THEN   \ # sign for decimal
+  OVER C@ 37 = IF 2 BASE ! 1 - SWAP 1 + SWAP THEN   \ % sign for binary
   DUP  0 > 0= IF  R> DROP R> BASE ! 0 EXIT THEN   \ Length 0 or less?
   >R >R 0 0 R> R>
   BEGIN
