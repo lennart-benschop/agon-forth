@@ -35,17 +35,20 @@
 cells + ;
 
 : ? ( addr ---)
+\G Fetch & print
 @ . ;
 
 : c? ( addr ---)
 C@ . ;
 
 : .FREE ( ---)
+\G Print free space
  $fe00 pad 80 + - u. ;
 
 \ gfx words
 
 : *FX19 ( ---)
+\G Wait for Vertical Blank
 sysvars xC@ begin sysvars xC@ over <> until DROP ;
 
 :
@@ -53,6 +56,7 @@ VDU23 ( ---)
 23 EMIT 27 EMIT ;
 
 : UDC ( d0 ... d7 char --- );
+\G Create User Defined Character
 23 EMIT
 EMIT
 8 0 do
@@ -60,9 +64,11 @@ EMIT
 loop ;
 
 : SELECT_BITMAP ( n ---)
+\G Select bitmap for preceding operations
 VDU23 0 EMIT EMIT ;
 
 : LOAD_BITMAP_RGB ( data w h --)
+\G Load selected bitmap with data in rgb format
 VDU23 1 EMIT \ load bitmap
 2DUP 2EMIT 2EMIT \ width & height
 * 3 * 0 do
@@ -74,6 +80,7 @@ DUP i 0 + + C@ EMIT
 DROP ;
 
 : LOAD_BITMAP_RGBA ( data w h --)
+\G Load selected bitmap with data in rgba format
 VDU23 1 EMIT \ load bitmap
 2DUP 2EMIT 2EMIT \ width & height
 * 4 * 0 do
@@ -86,36 +93,47 @@ DROP ;
 
 
 : DRAW_BITMAP ( y x --)
+\G Draw selected bitmap on screen at x y coordinates
 VDU23 3 EMIT 2EMIT 2EMIT ;
 
 : SELECT_SPRITE ( n --)
+\G Select sprite for preceding operations
 VDU23 4 EMIT 2EMIT ;
 
 : CLEAR_SPRITE ( --)
+\G Clear selected sprite
 VDU23 5 EMIT ;
 
 : BITMAP2SPRITE ( n --)
+\G Convert selected bitmap to selected sprite
 VDU23 6 EMIT 2EMIT ;
 
 : ACTIVATE_SPRITES ( n --)
+\G Activatye number of sprites
 VDU23 7 EMIT 2EMIT ;
 
 : SHOW_SPRITE ( --)
+\G Display selected sprite
 VDU23 11 EMIT ;
 
 : HIDE_SPRITE ( --)
+\G Remove selected sprite from screen
 VDU23 12 EMIT ;
 
 : MOVE_SPRITE_TO ( y x --)
+\G Move selected sprite to x y coordinates
 VDU23 13 EMIT 2EMIT 2EMIT ;
 
 : MOVE_SPRITE_BY ( y x --)
+\G Move selected sprite by x y pixels
 VDU23 14 EMIT 2EMIT 2EMIT ;
 
 : UPDATE_SPRITES ( --)
+\G Update sprites on screen
 VDU23 15 EMIT ;
 
 : RESET_SPRITES ( --)
+\G Reset all sprites
 VDU23 16 EMIT ;
 
 VARIABLE SEED 
@@ -126,9 +144,11 @@ SYSVARS XC@ SEED !
   SEED @ 3533 * 433 + DUP SEED ! UM* NIP ;
 
 : CLEARSTACK ( ? --);
+\G Clear the stack
 depth 0 do DROP loop ;
 
 : N>S ( u -- addr u)
+\G Convert number to string characters
 DUP >R ABS S>D <# #S R> SIGN #> ;
 
 : CUROFF ( ---)
