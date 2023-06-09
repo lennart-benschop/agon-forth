@@ -51,14 +51,14 @@ CROSS-COMPILE
   BASE @ >R
   COUNT
   OVER C@ 45 = DUP >R IF 1 - SWAP 1 + SWAP THEN \ Get any - sign
-  OVER C@ 36 = IF 16 BASE ! 1 - SWAP 1 + SWAP THEN   \ $ sign for hex.
-  OVER C@ 35 = IF 10 BASE ! 1 - SWAP 1 + SWAP THEN   \ # sign for decimal
-  OVER C@ 37 = IF 2 BASE ! 1 - SWAP 1 + SWAP THEN   \ % sign for binary
+  OVER C@ 36 = IF 16 BASE ! 1- SWAP 1+ SWAP THEN   \ $ sign for hex.
+  OVER C@ 35 = IF 10 BASE ! 1- SWAP 1+ SWAP THEN   \ # sign for decimal
+  OVER C@ 37 = IF 2 BASE ! 1- SWAP 1+ SWAP THEN   \ % sign for binary
   DUP  0 > 0= IF  R> DROP R> BASE ! 0 EXIT THEN   \ Length 0 or less?
   >R >R 0 0 R> R>
   BEGIN
    >NUMBER
-   DUP IF OVER C@ 46 = IF 1 - DUP DPL ! SWAP 1 + SWAP ELSE \ handle point.
+   DUP IF OVER C@ 46 = IF 1- DUP DPL ! SWAP 1 + SWAP ELSE \ handle point.
          R> DROP R> BASE ! 0 EXIT THEN   \ Error if anything but point
        THEN
   DUP 0= UNTIL DROP DROP R> IF DNEGATE THEN
