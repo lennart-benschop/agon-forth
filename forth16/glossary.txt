@@ -317,6 +317,9 @@ Start a BEGIN UNTIL or BEGIN WHILE REPEAT loop.
 BIN   mode1 --- mode2                                                          
 Modify the R/O W/O or R/W mode so that it applies to binary files. 
 
+BINARY   ---                                                                   
+Set numerical conversion to binary.
+
 BL   --- 32                                                                    
 Constant 32, the blank character
 
@@ -747,7 +750,7 @@ NUMBER?   c-addr ---- d f
 Convert the counted string at c-addr to a double binary number.
 f is true if and only if the conversion was successful. DPL contains
 -1 if there was no point in the number, else the position of the point
-from the right. Special prefixes: # means decimal, $ means hex.
+from the right. Prefixes: # means decimal, $ means hex, % means binary.
 
 OF   --- x                                                                     
 Start an OF..ENDOF block. At runtime it pops a value from the stack and

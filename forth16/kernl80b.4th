@@ -257,7 +257,7 @@ VARIABLE DPL ( --- a-addr)
 \G Set numerical conversion to hexadecimal.
   16 BASE ! ;
   
- : BINARY ( --- )
+: BINARY ( --- )
 \G Set numerical conversion to binary.
 2 BASE ! ;
 

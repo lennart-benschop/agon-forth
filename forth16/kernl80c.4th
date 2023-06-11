@@ -46,7 +46,7 @@ CROSS-COMPILE
 \G Convert the counted string at c-addr to a double binary number.
 \G f is true if and only if the conversion was successful. DPL contains
 \G -1 if there was no point in the number, else the position of the point
-\G from the right. Prefixes: # means decimal, $ means hex, $ means binary.
+\G from the right. Prefixes: # means decimal, $ means hex, % means binary.
   -1 DPL !
   BASE @ >R
   COUNT
@@ -534,7 +534,7 @@ LABEL COLDSTARTADDR ENDASM
 
 : F-STARTUP
 \G This is the first colon definition called after a (cold) startup.    
-    ." Agon 16-bit Z80 Forth v0.07, 2023-03-29 GPLv3" CR
+    ." Agon 16-bit Z80 Forth v0.08, 2023-06-11 GPLv3" CR
     ." Copyright (C) 2023 L.C. Benschop, Brad Rodriguez" CR
     0 SYSVARS 5 0 D+ XC!
     WARM ;
