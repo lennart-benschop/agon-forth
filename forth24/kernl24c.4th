@@ -1,6 +1,7 @@
 \ created 1994 by L.C. Benschop.
 \ copyleft (c) 1994-2014 by the sbc09 team, see AUTHORS for more details.
 \ copyleft (c) 2022 L.C. Benschop for Cerberus 2080.
+\ copyleft (c) 2023 L.C. Benschop Agon FORTH
 \ license: GNU General Public License version 3, see LICENSE for more details.
 CROSS-COMPILE
 
@@ -143,7 +144,7 @@ THEN
   32 WORD UPPERCASE?
            DUP FIND IF ." Redefining: " HERE COUNT TYPE CR THEN DROP
                        \ Give warning if existing word redefined.
-  DUP COUNT CURRENT @ 2+ @ HASH 2+ CELLS CURRENT @ + @ HERE CELL- !
+  DUP COUNT CURRENT @ CELL+ @ HASH 2+ CELLS CURRENT @ + @ HERE CELL- !
                        \ Set link field to point to the right thread
   C@ 1+ HERE C@ 128 + HERE C! ALLOT 
                        \ Allot the name and set bit 7 in length byte.
@@ -156,7 +157,7 @@ THEN
 : REVEAL ( --- )
 \G Add the last created definition to the CURRENT wordlist.
   LAST @ DUP COUNT 31 AND \ Get address and length of name
-  CURRENT @ 2+ @ HASH        \ compute hash code.
+  CURRENT @ CELL+ @ HASH        \ compute hash code.
   2+ CELLS CURRENT @ + ! ;
 
 : CREATE ( "ccc" --- )
@@ -367,7 +368,7 @@ VARIABLE POCKET ( --- a-addr )
 
 : >BODY ( xt --- a-addr)
 \G Convert execution token to parameter field address.
-  3 + ;
+  4 + ;
 
 : (;CODE) ( --- )
 \G Runtime for DOES>, exit calling definition and make last defined word
@@ -386,7 +387,7 @@ VARIABLE POCKET ( --- a-addr )
 
 : ?STACK ( ---)
 \G Check for stack over/underflow and abort with an error if needed.
-  DEPTH DUP 0< -4 ?THROW 255 > -3 ?THROW HERE 128 + $FE00 U> -5 ?THROW ;
+  DEPTH DUP 0< -4 ?THROW 255 > -3 ?THROW HERE 128 + $8FE00 U> -5 ?THROW ;
 
 : INTERPRET ( ---)
 \G Interpret words from the current source until the input source is exhausted.
@@ -488,9 +489,9 @@ VARIABLE INCLUDE-POINTER ( --- a-addr)
   OPEN OK ;
 
 VARIABLE COLDSTARTUP ( --- addr)
--2 ALLOT-T
+-3 ALLOT-T
 LABEL COLDSTARTADDR ENDASM
-02 ALLOT-T
+03 ALLOT-T
 \ Set when system is started up.
 
 : QUIT ( --- )
@@ -498,7 +499,7 @@ LABEL COLDSTARTADDR ENDASM
 \G buffer and then it reads and interprets terminal input.
   R0 @ RP! [
   TIB SRC ! 0 SID !
-  INCLUDE-BUFFER INCLUDE-POINTER !  
+  INCLUDE-BUFFER INCLUDE-POINTER !
   BEGIN
       CURFILENAME C@ COLDSTARTUP @ AND COLDSTARTUP OFF IF
 	  ['] OK \ Load any file on command line.
@@ -512,7 +513,7 @@ LABEL COLDSTARTADDR ENDASM
      ELSE
       ERRORS @
       BEGIN DUP WHILE
-       OVER OVER @ = IF 4 + COUNT TYPE SPACE ERROR-SOURCE THEN CELL+ @
+       OVER OVER @ = IF 2 CELLS + COUNT TYPE SPACE ERROR-SOURCE THEN CELL+ @
       REPEAT DROP
       ." Error " .
      THEN ERROR-SOURCE
@@ -533,32 +534,46 @@ LABEL COLDSTARTADDR ENDASM
     QUIT ;
 
 : F-STARTUP
-\G This is the first colon definition called after a (cold) startup.    
-    ." Agon 16-bit Z80 Forth v0.09, 2023-07-02 GPLv3" CR
+    \G This is the first colon definition called after a (cold) startup.
+    ." Agon 24-bit eZ80 Forth v0.10, 2023-07-02 GPLv3" CR
     ." Copyright (C) 2023 L.C. Benschop, Brad Rodriguez" CR
-    0 SYSVARS 5 0 D+ XC!
+    0 SYSVARS 5 + C!
     WARM ;
 
 CODE COLD ( --- )
     \G The first word that is called at the start of Forth.
-    LD SP, $FF00
+    PUSH IX
+    PUSH IY
+    PUSH HL
+    PUSH DE
+    PUSH BC
+    PUSH AF
+    PUSH AF
+    PUSH AF
+    PUSH AF
+    PUSH AF
+    PUSH AF
+    PUSH AF
+    PUSH AF
+    PUSH AF
+    PUSH AF    \ Push ten more words to protect the stack from underflow.
     LD S0ADDR (), SP
-    LD IX, $FFF0
+    LD IX, $8FFF0
     LD R0ADDR (), IX
-    LD DE, $FFFF
+    LD DE, $FFFFFF
     LD COLDSTARTADDR (), DE
     LD DE, CURFILEADDR
     BEGIN
-	LD .LIL A, (HL)
-	INC .LIL HL
+	LD A, (HL)
+	INC  HL
 	CP $20             \ Skip spaces
     0<> UNTIL
-    DEC .LIL HL
+    DEC  HL
     BEGIN
-	LD .LIL A, (HL)    \ Copy next parameter on command line to file buf.
+	LD  A, (HL)    \ Copy next parameter on command line to file buf.
 	CP $21
 	U>= WHILE
-	    INC .LIL HL
+	    INC  HL
 	    LD (DE), A
 	    INC DE
     REPEAT
@@ -584,10 +599,10 @@ RESOLVE (POSTPONE)
 : CELLS>TARGET
   0 DO OVER I CELLS + @ OVER I CELLS-T + !-T LOOP 2DROP ;
 
-#THREADS T' FORTH-WORDLIST >BODY-T 2 + !-T
-TLINKS T' FORTH-WORDLIST >BODY-T 4 + #THREADS CELLS>TARGET
+#THREADS T' FORTH-WORDLIST >BODY-T 03 + !-T
+TLINKS T' FORTH-WORDLIST >BODY-T 06 + #THREADS CELLS>TARGET
 THERE   T' DP             >BODY-T !-T
 
 CR .( Type the following command:)
-CR IMAGE U.  THERE ORIGIN - U. .( BSAVE kernel80.bin)
+CR IMAGE U.  THERE ORIGIN - U. .( BSAVE kernel24.bin)
 CR

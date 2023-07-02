@@ -123,7 +123,7 @@ WORDLIST
 CONSTANT ROOT-WORDLIST ( --- wid )
 \G Minimal wordlist for ONLY
 
-4 #THREADS !
+16 #THREADS !
 
 : ONLY ( --- )
 \G Set the search order to the minimal wordlist.
@@ -171,7 +171,7 @@ CONSTANT ROOT-WORDLIST ( --- wid )
 : DL ( addr1 --- addr2 )
 \G hex/ascii dump in one line of 16 bytes at addr1 addr2 is addr1+16
   BASE @ >R 16 BASE ! CR
-  DUP 0 <# # # # # #> TYPE ." : "
+  DUP 0 <# # # # # # # #> TYPE ." : "
   16 0 DO
    DUP I + C@ 0 <# # # #> TYPE
   LOOP
@@ -204,8 +204,8 @@ CONSTANT ROOT-WORDLIST ( --- wid )
 : WORDS ( --- )
 \G Show all words in the last wordlist of the search order.
     CONTEXT #ORDER @ 1- CELLS + @
-    2+ DUP @ >R \ number of threads to return stack.
-    2+ R@ 0 DO DUP I CELLS + @ SWAP LOOP DROP \ All thread pointers to stack.
+    CELL+ DUP @ >R \ number of threads to return stack.
+    CELL+ R@ 0 DO DUP I CELLS + @ SWAP LOOP DROP \ All thread pointers to stack.
     BEGIN
 	0 0
 	R@ 0 DO
@@ -355,7 +355,7 @@ DEFINITIONS
     R> 0 BASE @ >R DECIMAL <# #S #> OSSTRING ASCIIZ> + >ASCIIZ
     R> BASE ! \ Add line number to OS string.
     OSSTRING 0 0 16 OSCALL -39 ?THROW
-    0 SYSVARS 5. D+ XC!
+    0 SYSVARS 5 + C!
 ;
 
 : ED ( --- )
@@ -366,7 +366,7 @@ DEFINITIONS
 : SAVE-SYSTEM ( "ccc"  --- )
 \G Save the current FORTH system to the specifed file.    
     0 CURFILENAME C! \ Do not want stray current file here.
-    0 HERE BSAVE ;
+    $40000 HERE OVER - BSAVE ;
 
 : CAT ( ---)
     \G Show  the disk catalog
@@ -375,11 +375,11 @@ DEFINITIONS
 
 : SYSVARS@ ( idx --- c)
 \G Read value C from byte offset idx in the system variabled    
-    SYSVARS -ROT + SWAP XC@ ;
+    SYSVARS + C@ ;
 
 : SYSVARS! ( c idx ---)
 \G Store value C into byte offset idx in the system variabled    
-    SYSVARS -ROT + SWAP XC! ;
+    SYSVARS + C! ;
 
 : MS ( n --- )
 \G Delay for n milliseconds.
@@ -390,11 +390,11 @@ DEFINITIONS
 
 CAPS ON
 
-S" asmz80.4th" INCLUDED
+S" asmez80.4th" INCLUDED
      
 HERE FENCE !
 
-DELETE forth.bin
-CR .( Saving system as forth.bin ) CR
-SAVE-SYSTEM forth.bin
+DELETE forth24.bin
+CR .( Saving system as forth24.bin ) CR
+SAVE-SYSTEM forth24.bin
 BYE

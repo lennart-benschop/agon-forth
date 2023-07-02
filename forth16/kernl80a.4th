@@ -889,6 +889,7 @@ CODE XC@ ( d-addr --- c)
     POP .LIL HL  \ Extended address now in UHL
     POP IX
     LD .LIL C, (HL)
+    LD B, 0
     NEXT
 END-CODE
 

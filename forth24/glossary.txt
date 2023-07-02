@@ -74,6 +74,7 @@ Runtime part of S"
 
 *   w1 w2 --- w3                                                               
 Multiply single numbers, signed or unsigned give the same result.
+Multiply two unsigned numbers, giving double result.
 
 */   n1 n2 n3 --- n4                                                           
 Multiply signed numbers n1 by n2 and divide by n3, giving quotient n4.
@@ -165,7 +166,7 @@ Subtract 2 from the top of the stack.
 Divide signed number n1 by 2.
 
 2@   a-addr --- d                                                              
-Fetch double number d at a-addr. 
+Fetch double number d at a-addr.
 
 2CONSTANT   d ---                                                              
 Create a new definition that has the following runtime behavior.
@@ -236,7 +237,7 @@ that is no digit.
 Push x on the return stack. 
 
 ?BRANCH   f ---                                                                
-High-level conditonal jump, jumps only if TOS=0    
+High-level conditonal jump, jumps only if TOS=0
 
 ?CSP   ---                                                                     
 Check that stack pointer is equal to value contained in CSP.
@@ -273,13 +274,15 @@ u is the absolute value of n.
 
 ACCEPT   c-addr n1 --- n2                                                      
 Read a line from the terminal to a buffer starting at c-addr with
-length n1. n2 is the number of characters read,
 
 AGAIN   x ---                                                                  
 Terminate a loop forever BEGIN..AGAIN loop.    
 
 ALIGN   ---                                                                    
 Add as many bytes to the dictionary as needed to align dictionary pointer.
+
+ALIGNED   c-addr --- a-addr                                                    
+a-addr is the first aligned address after c-addr.
 
 ALIGNED   c-addr --- a-addr                                                    
 a-addr is the first aligned address after c-addr.
@@ -291,7 +294,7 @@ ALSO   ---
 Duplicate the last wordlist in the search order.
 
 AND   x1 x2 ---x3                                                              
-Bitwise and of the top two cells on the stack. 
+Bitwise and of the top two cells on the stack.
 
 ASCIIZ>   c-addr1 --- c-addr1 u                                                
 Return the address and length of a null terminated string..
@@ -339,9 +342,6 @@ thread
 BSAVE   addr len "ccc" ---                                                     
 Save memory at address addr, length len bytes to a file
 filename is the next word parsed.       
-
-BYE   ---                                                                      
-Exit Forth and return to the calling program.
 
 C!   c c-addr ---                                                              
 Store character c at c-addr
@@ -567,15 +567,9 @@ Evaluate the string c-addr u as if it were typed on the terminal.
 EXECUTE   xt ---                                                               
 Execute the word with execution token xt. 
 
-EXIT   ---                                                                     
-Return from colon definition.    
-
 EXPECT   c-addr u ---                                                          
 Read a line from the terminal to a buffer at c-addr with length u.
 Store the length of the line in SPAN.
-
-F-STARTUP                                                                      
-This is the first colon definition called after a (cold) startup.    
 
 FALSE   --- 0                                                                  
 Constant 0, indicates FALSE
@@ -612,12 +606,17 @@ Put a single character into a file.
 GET-ORDER   --- w1 w2 ... wn n                                                 
 Return all wordlists in the search order, followed by the count.
 
+H!   x a-addr ---                                                              
+store 16-bit value x at a-addr
+
+H@   a-addr --- x                                                              
+fetch 16-bit value x at a-addr.
+
 HANDLER   --- a-addr                                                           
 Variable containing return stack address where THROW should return.
 
 HASH   c-addr u #threads --- n                                                 
 Compute the hash function for the name c-addr u with the indicated number
-of threads.
 
 HEADER   ---                                                                   
 Create a header for a new definition without a code field.
@@ -787,10 +786,10 @@ OVER   x1 x2 --- x1 x2 x1
 Copy the second cell of the stack. 
 
 P!   c p-addr ---                                                              
-Write a byte to an I/O port
+Write byte c to I/O address p-addr   
 
 P@   p-addr --- c                                                              
-Read a byte from an I/O port
+Read byte c from I/O address p-addr
 
 PAD   --- c-addr                                                               
 The address of a scratch pad area. Right below this address there is
@@ -898,7 +897,7 @@ Convert single number to double number.
 SAVE-SYSTEM   "ccc"  ---                                                       
 Save the current FORTH system to the specifed file.    
 
-SCAN   c-addr1 u11 c --- c-addr2 u2                                            
+SCAN   c-addr1 u1 c --- c-addr2 u2                                             
 Find the first occurrence of character c in the string c-addr1 u1
 c-addr2 u2 is the remaining part of the string starting with that char.
 It is a zero-length string if c was not found.
@@ -906,7 +905,6 @@ It is a zero-length string if c was not found.
 SEARCH-WORDLIST   c-addr u wid --- 0 | xt 1 | xt -1                            
 Search the wordlist with address wid for the name c-addr u.
 Return 0 if not found, the execution token xt and -1 for non-immediate
-words and xt and 1 for immediate words.
 
 SET-ORDER   w1 w2 ... wn n ---                                                 
 Set the search order to the n wordlists given on the stack.
@@ -961,7 +959,7 @@ Swap the two top items on the stack.
 SYSTEM   c-addr u ---                                                          
 Execute the specified system command.    
 
-SYSVARS   --- d-addr                                                           
+SYSVARS   --- addr                                                             
 Obtain the address of the system variables.
 
 SYSVARS!   c idx ---                                                           
@@ -1004,7 +1002,7 @@ U>   u1 u2 --- f
 f is true if and only if the unsigned number u1 is greater than u2.
 
 UM*   u1 u2 --- ud                                                             
-Multiply two unsigned numbers, giving double result. 
+Multiply two unsigned numbers, giving double result.
 
 UM/MOD   ud u1 --- urem uquot                                                  
 Divide the unsigned double number ud by u1, giving unsigned quotient
@@ -1072,12 +1070,6 @@ WRITE-LINE   c-addr u fid --- ior
 Write the string at addr c-addr with length u to the file described by
 fid. Append the end of line character to it.
 
-XC!   c d-addr ---                                                             
-Store a byte value into an extended address.    
-
-XC@   d-addr --- c                                                             
-Read a byte value from an extended address.
-
 XOR   x1 x2 ---x3                                                              
 Bitwise exclusive or of the top two cells on the stack.
 
@@ -1091,6 +1083,15 @@ Copile the execution token of the word with name ccc as a literal.
 Compile the first character of "ccc" as a literal.
 
 \                                                                              
+Comment till end of line.
+
+\G                                                                             
+comment till end of line for inclusion in glossary.
+
+]   ---                                                                        
+Start compilation mode.
+
+                                                              
 Comment till end of line.
 
 \G                                                                             
