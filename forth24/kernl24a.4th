@@ -964,7 +964,7 @@ CODE ROLL ( u ---)
     ADD HL, DE
     ADD HL, HL
     ADD HL, DE
-    PUSH DE
+    PUSH HL
     POP BC
     ADD HL, SP
     LD DE, (HL)
