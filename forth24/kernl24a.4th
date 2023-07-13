@@ -968,6 +968,8 @@ CODE ROLL ( u ---)
     POP BC
     ADD HL, SP
     LD DE, (HL)
+    INC HL
+    INC HL
     PUSH DE
     PUSH HL
     POP DE
