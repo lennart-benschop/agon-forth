@@ -494,6 +494,11 @@ LABEL COLDSTARTADDR ENDASM
 03 ALLOT-T
 \ Set when system is started up.
 
+: PROMPT ( ---)
+." OK" ;
+
+VARIABLE 'prompt ' PROMPT 'prompt !
+
 : QUIT ( --- )
 \G This word resets the return stack, resets the compiler state, the include
 \G buffer and then it reads and interprets terminal input.
@@ -506,7 +511,7 @@ LABEL COLDSTARTADDR ENDASM
       ELSE
 	  REFILL DROP ['] INTERPRET
       THEN CATCH DUP 0= IF
-	  DROP STATE @ 0= IF ." OK" THEN CR
+	  DROP STATE @ 0= IF 'prompt @ EXECUTE THEN CR
    ELSE \ throw occured.
      DUP -2 = IF
       ERROR$ @ COUNT TYPE SPACE
