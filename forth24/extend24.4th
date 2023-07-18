@@ -168,6 +168,10 @@ CONSTANT ROOT-WORDLIST ( --- wid )
 
 \ PART 3: SOME UTILITIES, DUMP .S WORDS
 
+: CLEAR-STACK ( ---)
+\G Clears the stack
+S0 @ SP! ;
+
 : DL ( addr1 --- addr2 )
 \G hex/ascii dump in one line of 16 bytes at addr1 addr2 is addr1+16
   BASE @ >R 16 BASE ! CR
