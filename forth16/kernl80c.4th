@@ -47,6 +47,7 @@ CROSS-COMPILE
 \G f is true if and only if the conversion was successful. DPL contains
 \G -1 if there was no point in the number, else the position of the point
 \G from the right. Prefixes: # means decimal, $ means hex, % means binary.
+\G Can also use 'c' to specify character.    
   -1 DPL !
   BASE @ >R
   COUNT
@@ -54,6 +55,7 @@ CROSS-COMPILE
   OVER C@ 36 = IF 16 BASE ! 1- SWAP 1+ SWAP THEN   \ $ sign for hex.
   OVER C@ 35 = IF 10 BASE ! 1- SWAP 1+ SWAP THEN   \ # sign for decimal
   OVER C@ 37 = IF 2 BASE ! 1- SWAP 1+ SWAP THEN   \ % sign for binary
+  OVER C@ 39 = IF R> DROP R> BASE ! DROP 1+ C@ 0 -1 EXIT THEN \ ' for character literal.
   DUP  0 > 0= IF  R> DROP R> BASE ! 0 EXIT THEN   \ Length 0 or less?
   >R >R 0 0 R> R>
   BEGIN
@@ -273,7 +275,7 @@ VARIABLE POCKET ( --- a-addr )
   32 WORD UPPERCASE? FIND 0= -13 ?THROW ;
 
 : ['] ( "ccc" ---)
-\G Copile the execution token of the word with name ccc as a literal.
+\G Compile the execution token of the word with name ccc as a literal.
   ' LITERAL ; IMMEDIATE
 
 : CHAR ( "ccc" --- c)
@@ -481,10 +483,17 @@ VARIABLE INCLUDE-POINTER ( --- a-addr)
   R> CLOSE-FILE DROP      
 ; 
 
+: INCLUDE ( "ccc")
+\G Open the file with name "ccc" and interpret all lines contained in it.    
+    BL WORD COUNT INCLUDED ;
+
 : OK ( ---)
+\G Load the file opened with OPEN    
     CURFILENAME C@ 0= -38 ?THROW
     CURFILENAME ASCIIZ> INCLUDED ;
-: FLOAD ( --- )
+
+: FLOAD ( "ccc" --- )
+\G Make the file on the command line the current file and include it.
   OPEN OK ;
 
 VARIABLE COLDSTARTUP ( --- addr)
@@ -493,10 +502,17 @@ LABEL COLDSTARTADDR ENDASM
 02 ALLOT-T
 \ Set when system is started up.
 
+VARIABLE AT-STARTUP 
+\G Variable to hold code to run at startup.
+
+VARIABLE NESTING
+\G Variable to hold nesting for conditional compilation.
+
 : QUIT ( --- )
 \G This word resets the return stack, resets the compiler state, the include
 \G buffer and then it reads and interprets terminal input.
   R0 @ RP! [
+  NESTING OFF  
   TIB SRC ! 0 SID !
   INCLUDE-BUFFER INCLUDE-POINTER !  
   BEGIN
@@ -530,13 +546,17 @@ LABEL COLDSTARTADDR ENDASM
     FORTH-WORDLIST CONTEXT CELL+ !
     FORTH-WORDLIST CURRENT !
     0 HANDLER !
+    AT-STARTUP @ IF AT-STARTUP @ EXECUTE THEN  
     QUIT ;
 
 : F-STARTUP
 \G This is the first colon definition called after a (cold) startup.    
-    ." Agon 16-bit Z80 Forth v0.09, 2023-07-02 GPLv3" CR
-    ." Copyright (C) 2023 L.C. Benschop, Brad Rodriguez" CR
-    0 SYSVARS 5 0 D+ XC!
+    AT-STARTUP @ 0= IF
+	." Agon 16-bit Z80 Forth v0.09, 2023-10-22 GPLv3" CR
+	." Copyright (C) 2023 L.C. Benschop, Brad Rodriguez" CR
+    THEN
+    0 HERE C!
+    0 SYSVARS 5 0 D+ XC!	
     WARM ;
 
 CODE COLD ( --- )

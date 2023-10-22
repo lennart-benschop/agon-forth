@@ -4,12 +4,13 @@
 \ Copyright 2023 Lennart Benschop, released under GPLv3.
 \ Originally submitted to Olimex WPC June 2023
 \ 2023-07-02: Adapted to run under both Agon FORTHs.
+\ 2023-10-22: Adapted to 40x32 char mode, VDP 1.04, turnkey app.
 \ 
 \ How to run:
 \ load forth.bin
 \ run . serpent.4th
 
-FORGET MARKER CREATE MARKER
+FORGET MARKER1 CREATE MARKER1
 DECIMAL
 
 : SET-MODE ( m ---)
@@ -62,16 +63,16 @@ VARIABLE SEED
     DROP
 ;
 
-45 CONSTANT PIT-HEIGHT
-62 CONSTANT PIT-WIDTH
+27 CONSTANT PIT-HEIGHT
+38 CONSTANT PIT-WIDTH
 
-10 CONSTANT FOOD-ITEMS
+ 6 CONSTANT FOOD-ITEMS
 
 \ Playing field, creates byte codes of every item on the screen.
 \ 0 = empty, 1=food, 2=serpent, 3=wall.
 CREATE PLAYING-FIELD PIT-WIDTH 2+ PIT-HEIGHT 2+  * ALLOT
 
-4096 CONSTANT MAX-LEN \ The absolute maximum length our snake could have.
+2048 CONSTANT MAX-LEN \ The absolute maximum length our snake could have.
 \ Power of 2
 MAX-LEN 1- CONSTANT IDX-MASK \ So we can mask index into the array.
 
@@ -142,7 +143,7 @@ BRIGHT-GREEN BLACK 144 UDG BOTTOM-RIGHT
 $7E C, $FE C, $FE C, $E6 C, $E6 C, $FE C, $FC C, $00 C,
 
 VARIABLE SCORE
-: SHOW-SCORE 25 47 AT-XY BLACK BG WHITE FG
+: SHOW-SCORE 15 29 AT-XY BLACK BG WHITE FG
     ." SCORE: " SCORE @ 4 .R ;
 
 : >PLAYFIELD ( x y --- addr)
@@ -251,8 +252,8 @@ VARIABLE SCORE
     1 HEAD-IDX !
     0 TAIl-IDX !
     4 RAND ORIENTATION !
-    21 20 RAND + \ initial X position
-    15 16 RAND + \ INitial y position.
+    15 10 RAND + \ initial X position
+    10 6 RAND + \ INitial y position.
     HEAD! SHOW-HEAD
     ORIENTATION @ 1 XOR ORIENTATION ! NEXT-CELL
     \ reverse orientation, to get previous cell.
@@ -307,21 +308,21 @@ VARIABLE SCORE
 
 : INSTRUCTIONS
     PAGE
-    20 0 AT-XY BRIGHT-GREEN FG ." S-E-R-P-E-N-T" WHITE FG
+    20 0 AT-XY  ." S-E-R-P-E-N-T" 
     0 4 AT-XY ." Move your serpent " TAIl-LEFT HORIZ HORIZ HEAD-RIGHT WHITE FG
-               ."  around by pressing the cursor keys"
-    CR         ." Do not collide with the wall " WALL WALL  WHITE FG  BLACK BG
+               ."  around by" CR ." pressing the cursor keys"
+    CR         ." Do not collide with the wall " WALL WALL BLACK BG WHITE FG
                ."  or with yourself"
     CR         ." The game will be over when you collide."
-    CR         ." The serpent  will grow each time you swallow some food "
+    CR         ." The serpent  will grow each time you" CR ." swallow some food "
                  FOOD WHITE FG
-    CR         ." You will always keep moving, even when no key is pressed."
+    CR         ." You will always keep moving, even when" CR ." no key is pressed."
     CR         ." Try to grow as long as you can!"
     CR         ." ESC quits the game prematurely."
-    0 47 AT-XY ." Press any key to start the game." KEY DROP ;
+    0 24 AT-XY ." Press any key to start the game." KEY DROP ;
 
 : ASK-QUIT ( --- f)
-    10 22 AT-XY WHITE FG BLACK BG
+    2 12 AT-XY WHITE FG BLACK BG
     ." GAME OVER!!!! Play another one? (Y/n)"
     50 0 DO WAITFRAME LOOP
     0 5 SYSVARS! \ Clear key code.
@@ -329,15 +330,21 @@ VARIABLE SCORE
 
 	
 : SERPENT
-    1 SET-MODE CUROFF
+    8 SET-MODE CUROFF
     RANDOMIZE
     INSTRUCTIONS
     BEGIN 
 	FILL-INITIAL
 	PLAY-GAME
     ASK-QUIT UNTIL
-    CURON PAGE
-    BYE
+    0 SET-MODE CURON PAGE
 ;
 
-SERPENT
+: RUN-SERPENT
+    50 0 DO WAITFRAME LOOP
+    0 5 SYSVARS! \ Clear key code.
+    SERPENT BYE ;
+
+CR .( Type SERPENT to start the game)
+CR .( Type ' RUN-SERPENT TURNKEY serpent.bin BYE to save as binary)
+CR  	    

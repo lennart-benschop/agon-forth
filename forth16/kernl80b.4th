@@ -545,8 +545,8 @@ LABEL CURFILEADDR ENDASM
   DUP 80 0 SCAN DROP OVER - 
 ;
     
-: OPEN ( --- )
-\G Load a file into the source file buffer.    
+: OPEN ( "ccc" --- )
+\G Make the specified file the current file.
  BL WORD COUNT CURFILENAME >ASCIIZ ;
 
 01 
@@ -643,6 +643,10 @@ VARIABLE FID
 \G Close the open file described by fid.
   0 0 ROT $B OSCALL DROP 0 ;
 
+: DELETE-FILE ( c-addr u --- ior)
+\G Delete the file whose name is specified by c-addr u.   
+  OSSTRING >ASCIIZ OSSTRING 0 0 5 OSCALL ;
+    
 \ PART 11: INTERPRETER HELPER WORDS
 
 \ First we need FIND and related words.

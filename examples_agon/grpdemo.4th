@@ -243,7 +243,7 @@ VARIABLE X4 VARIABLE Y4 \ Coordinates of all 4 corners of the rectangle.
 
 
 : RUN-DEMO
-  3 MODE \ Tests require mode 0.
+  0 MODE \ Tests require mode 0.
   CUROFF
   BEGIN 
     COLOURED-TEXT

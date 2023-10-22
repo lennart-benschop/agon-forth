@@ -232,6 +232,13 @@ load this file at the MOS prompt and run it.
 Example:
 `SAVE-SYSTEM myapp.bin`
 
+` addr TURNKEY <name>`
+
+Save the current FORTH system into the specified file and cause the word
+with execution address `addr` to run at startup.
+Example:
+` ' RUN-MYAPP TURNKEY myapp.bin`
+
 ## Glossary file
 
 The file `glossary.txt` gives a short explanation for every FDRTH word.
@@ -246,6 +253,12 @@ word as results. So in this case, '+" expects two numbers n1 and n2 as
 inputs and produces one number n3 as a result.
 
 ## The assembler
+
+Forth16 is compiled without the assembler. If you need it, first load it
+with 
+```
+fload asmz80.4th
+```
 
 This is a prefix assembler, like F-PC used to have. The assembler instructions
 look the same as you learned them, as opposed to more traditional FORTH

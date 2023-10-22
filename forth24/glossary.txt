@@ -60,6 +60,9 @@ Search in a single hash chain. Return the cfa of the found word. If
 If the word is not found, return the string addres instead. Flag values:
 0 for not found, 1 for immediate word, -1 for normal word.   
 
+(FORGET)   xt ---                                                              
+Forget the word indicated by xt and everything defined after it.    
+
 (LEAVE)   ---                                                                  
 Runtime of LEAVE
 
@@ -128,6 +131,9 @@ n3 is n1 divided by n2.
 
 /MOD   n1 n2 --- nrem nquot                                                    
 Divide signed number n1 by n2, giving quotient and remainder.
+
+0                                                                              
+Used in [IF] [ELSE] [THEN] for conditional compilation.    
 
 0<   n --- f                                                                   
 f is true if and only if n is less than 0.
@@ -304,6 +310,9 @@ Start assembling.
 
 ASSEMBLER   ---                                                                
 Vocabulary containing the ASSEMBLER words.
+
+AT-STARTUP                                                                     
+Variable to hold code to run at startup.
 
 AT-XY   x y --                                                                 
 Set print position to column x and row y.    
@@ -488,6 +497,9 @@ Set the definitions wordlist to the last wordlist in the search order.
 DELETE   "ccc"  --                                                             
 Delete the specified file.    
 
+DELETE-FILE   c-addr u --- ior                                                 
+Delete the file whose name is specified by c-addr u.   
+
 DEPTH   --- n                                                                  
 n is the number of cells on the stack (before DEPTH was executed).
 
@@ -549,6 +561,9 @@ Terminate a CASE..ENDCASE construct.
 ENDOF   x1 --- x2                                                              
 Terminate an OF..ENDOF block.    
 
+ENVIRONMENT?   c-addr u --- false | val true                                   
+Return an environmental query of the string c-addr u    
+
 ERASE   c-addr u                                                               
 Fill memory region of u bytes starting at c-addr with zero.    
 
@@ -580,6 +595,12 @@ Address below which we are not allowed to forget.
 FEOF   fid --- f                                                               
 Check end-of-file.
 
+FILE-POSITION   fid --- ud ior                                                 
+Return the file position. Currently unimplemented.    
+
+FILE-SIZE   fid --- ud ior                                                     
+Return the file size. Currently unimplemented.    
+
 FILL   c-addr u c ---                                                          
 Fill a block of u bytes starting at c-addr with character c.
 
@@ -588,6 +609,9 @@ Search all word lists in the search order for the name in the
 counted string at c-addr. If not found return the name address and 0.
 If found return the execution token xt and -1 if the word is non-immediate
 and 1 if the word is immediate.
+
+FLOAD   "ccc" ---                                                              
+Make the file on the command line the current file and include it.
 
 FM/MOD   d n1 --- nrem nquot                                                   
 Divide signed double number d by single number n1, giving quotient and
@@ -654,6 +678,9 @@ IMMEDIATE   ---
 Make last definition immediate, so that it will be executed even in
 compilation mode.
 
+INCLUDE   "ccc"                                                                
+Open the file with name "ccc" and interpret all lines contained in it.    
+
 INCLUDE-BUFFER   --- a-addr                                                    
 This is the buffer where the lines of included files are stored.
 
@@ -710,6 +737,10 @@ Shift x1 left by u bits, zeros are added to the right.
 M*   n1 n2 --- d                                                               
 Multiply the signed numbers n1 and n2, giving the signed double number d.
 
+MARKER   "ccc" --                                                              
+Create a word that when executeed forgets itself and everything defined
+after it.
+
 MAX   n1 n2 --- n3                                                             
 n3 is the maximum of n1 and n2.
 
@@ -739,6 +770,9 @@ Convert address of name to address of code.
 NEGATE   n1 --- -n1                                                            
 Negate top number on the stack.    
 
+NESTING                                                                        
+Variable to hold nesting for conditional compilation.
+
 NIP   x1 x2 --- x2                                                             
 Discard the second item on the stack.
 
@@ -758,14 +792,17 @@ executes the block if this value is equal to the CASE value.
 OFF   a-addr ---                                                               
 Store FALSE at a-addr.
 
+OK   ---                                                                       
+Load the file opened with OPEN    
+
 ON   a-addr ---                                                                
 Store TRUE at a-addr.
 
 ONLY   ---                                                                     
 Set the search order to the minimal wordlist.
 
-OPEN   ---                                                                     
-Load a file into the source file buffer.    
+OPEN   "ccc" ---                                                               
+Make the specified file the current file.
 
 OPEN-FILE   c-addr u mode --- fid ior                                          
 Open the file with the name starting at c-addr and with length u.
@@ -778,6 +815,10 @@ Bitwise or of the top two cells on the stack.
 OSCALL   HL DE BC func --- res                                                 
 Call the MOS API via RST 8 with the desired parameters in HL, DE and BC.
 Return the return code as in the A register.
+
+OSCALL2   HL DE BC func --- DE                                                 
+Call the MOS API via RST 8 with the desired parameters in HL, DE and BC.
+Return the return code as in the DE register.
 
 OSSTRING   --- addr                                                            
 Buffer to store file names, command lines, zero terminated for OS calls.
@@ -843,6 +884,10 @@ Pop the top of the return stack and place it on the stack.
 R@   --- x                                                                     
 x is a copy of the top of the return stack.
 
+READ-FILE   c-addr u1 fid --- u2 ior                                           
+Read data from the file indicated by fid, into the buffer starting
+at c-addr. Read at most u1 bytes. u2 is the number of bytes read.
+
 READ-LINE   c-addr u1 fid --- u2 flag ior                                      
 Read a line from the file described by fid to a buffer at c-addr that
 is u1+2 characters long. The line is at most u1 characters long.
@@ -859,6 +904,13 @@ true if it was successfully refilled.
 
 REPEAT   x1 x2 ---                                                             
 part of BEGIN WHILE REPEAT construction.
+
+REPOSITION-FILE   ud fid --- ior                                               
+Position the file indicated by fid to the offset indicated by ud.    
+
+RESIZE-FILE   ud fid --- ior                                                   
+Resize the file indicated by fid to the size indicated by ud. Currently
+unimplemented
 
 RESOLVE-LEAVE                                                                  
 Resolve the references to the leave addresses of the loop.
@@ -986,6 +1038,10 @@ Constant -1, indicates TRUE
 TUCK   x1 x2 --- x2 x1 x2                                                      
 Copy the top of stack to a position under the second item.  
 
+TURNKEY   xt "ccc" ---                                                         
+Save the current FORTH system is a way it automatically starts xt
+when loaded and run.
+
 TYPE   c-addr1 u ---                                                           
 Output the string starting at c-addr and length u to the terminal.
 
@@ -1066,6 +1122,10 @@ Make a new wordlist and give its address.
 WORDS   ---                                                                    
 Show all words in the last wordlist of the search order.
 
+WRITE-FILE   c-addr u1 fid --- u2 ior                                          
+Write data from the file indicated by fid, from the buffer starting
+at c-addr. Write at most u1 bytes. u2 is the number of bytes written.
+
 WRITE-LINE   c-addr u fid --- ior                                              
 Write the string at addr c-addr with length u to the file described by
 fid. Append the end of line character to it.
@@ -1077,21 +1137,21 @@ Bitwise exclusive or of the top two cells on the stack.
 Leave compilation mode.
 
 [']   "ccc" ---                                                                
-Copile the execution token of the word with name ccc as a literal.
+Compile the execution token of the word with name ccc as a literal.
 
 [CHAR]   "ccc" ---                                                             
 Compile the first character of "ccc" as a literal.
 
+[DEFINED]   "ccc" --- f                                                        
+Produce a flag indicating whether the next word is defined.	
+
+[IF]   f ---                                                                   
+If the flag is false, conditionally skip till the next [ELSE] or [ENDIF]
+
+[THEN]   ---                                                                   
+Terminate [IF] [THEN] does nothing.
+
 \                                                                              
-Comment till end of line.
-
-\G                                                                             
-comment till end of line for inclusion in glossary.
-
-]   ---                                                                        
-Start compilation mode.
-
-                                                              
 Comment till end of line.
 
 \G                                                                             

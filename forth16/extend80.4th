@@ -137,12 +137,16 @@ CONSTANT ROOT-WORDLIST ( --- wid )
   GET-ORDER SWAP DROP R> SWAP SET-ORDER ;
 
 
-: FORGET ( "ccc" ---)
-\G Remove word "ccc" from the dictionary, and anything defined later.
-    32 WORD UPPERCASE? FIND 0=
-    IF
-	DROP EXIT
-    THEN \ Exit silently if word not found.
+: VOCABULARY ( --- )
+\G Make a definition that will replace the last word in the search order
+\G by its wordlist.
+  CREATE WORDLIST DROP          \ Make a new wordlist and store it in def.
+  DOES> >R                      \ Replace last item in the search order.
+  GET-ORDER SWAP DROP R> SWAP SET-ORDER ;
+
+
+: (FORGET) ( xt ---)
+\G Forget the word indicated by xt and everything defined after it.    
     >NAME CELL- DUP FENCE @ U< -6 ?THROW \ Check we are not below fence.
     >R \ Store new dictionary pointer to return stack.
     VOC-LINK @   
@@ -165,6 +169,65 @@ CONSTANT ROOT-WORDLIST ( --- wid )
     UNTIL DROP
     R> DP ! \ Adjust dictionary pointer.
 ;
+
+: FORGET ( "ccc" ---)
+\G Remove word "ccc" from the dictionary, and anything defined later.
+    32 WORD UPPERCASE? FIND 0=
+    IF
+	DROP \ Exit silently if word not found.
+    ELSE
+	(FORGET)
+    THEN
+;
+
+: MARKER ( "ccc" --)
+\G Create a word that when executeed forgets itself and everything defined
+\G after it.
+   CREATE DOES> 3 - (FORGET)    
+;
+
+: ENVIRONMENT? ( c-addr u --- false | val true)
+\G Return an environmental query of the string c-addr u    
+    2DROP 0 ;
+
+\ Part 2A: Conditional compilation
+
+: [IF] ( f ---)
+\G If the flag is false, conditionally skip till the next [ELSE] or [ENDIF]
+    0= IF
+	BEGIN 
+	    BEGIN
+		BL WORD UPPERCASE? COUNT
+		DUP WHILE
+		    2DUP S" [ELSE]" COMPARE 0= IF
+			2DROP NESTING @ 0= IF EXIT THEN
+		    ELSE
+			2DUP S" [THEN]" COMPARE 0= IF
+			    2DROP NESTING @ 0= IF EXIT ELSE -1 NESTING +! THEN
+			ELSE
+			    S" [IF]" COMPARE 0= IF
+				1 NESTING +!
+			    THEN
+			THEN
+		    THEN	    
+	    REPEAT
+	    2DROP REFILL 0=
+	UNTIL
+	NESTING OFF
+    THEN	
+; IMMEDIATE
+
+: [ELSE] ( --- )
+    0 POSTPONE [IF] ; IMMEDIATE
+\G Used in [IF] [ELSE] [THEN] for conditional compilation.    
+
+: [THEN] ( --- )
+\G Terminate [IF] [THEN] does nothing.
+    ; IMMEDIATE
+
+: [DEFINED] ( "ccc" --- f)
+\G Produce a flag indicating whether the next word is defined.	
+    BL WORD UPPERCASE? FIND SWAP DROP 0<> ; IMMEDIATE
 
 \ PART 3: SOME UTILITIES, DUMP .S WORDS
 
@@ -334,7 +397,7 @@ DEFINITIONS
 
 : DELETE ( "ccc"  --)
 \G Delete the specified file.    
-  BL WORD COUNT OSSTRING >ASCIIZ OSSTRING 0 0 5 OSCALL -38 ?THROW ;
+  BL WORD COUNT DELETE-FILE -38 ?THROW ;
 
 : CD ( "ccc"  --)
 \G Go to the specified directory.    
@@ -368,6 +431,11 @@ DEFINITIONS
     0 CURFILENAME C! \ Do not want stray current file here.
     0 HERE BSAVE ;
 
+: TURNKEY ( xt "ccc" --- )
+\G Save the current FORTH system is a way it automatically starts xt
+\G when loaded and run.
+  AT-STARTUP ! SAVE-SYSTEM ;    
+
 : CAT ( ---)
     \G Show  the disk catalog
     CR S" ." OSSTRING >ASCIIZ OSSTRING 0 0 4 OSCALL DROP
@@ -390,7 +458,7 @@ DEFINITIONS
 
 CAPS ON
 
-S" asmz80.4th" INCLUDED
+\ S" asmz80.4th" INCLUDED
      
 HERE FENCE !
 

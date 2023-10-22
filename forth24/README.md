@@ -215,6 +215,13 @@ load this file at the MOS prompt and run it.
 Example:
 `SAVE-SYSTEM myapp.bin`
 
+` addr TURNKEY <name>`
+
+Save the current FORTH system into the specified file and cause the word
+with execution address `addr` to run at startup.
+Example:
+` ' RUN-MYAPP TURNKEY myapp.bin`
+
 ## Glossary file
 
 The file `glossary.txt` gives a short explanation for every FDRTH word.
@@ -326,6 +333,8 @@ HERE..PAD  word buffer, numeric conversion buffer
 PAD..PAD+80 temporary workspace
     -$8FE00 Free space
 $8FE00-$8FFFF Return stack
+$90000-$AFFFF Reserved as edit buffer for nano
+$B0000-$BFFFF Reserved for MOS commands.
 $BF000-$BFFFF Data stack (shared with MOS).
 ```
 

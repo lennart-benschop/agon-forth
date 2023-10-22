@@ -368,7 +368,7 @@ CODE KEY? ( --- f)
     THEN
     NEXT	
 END-CODE
--
+
 CODE OSCALL ( HL DE BC func --- res)
 \G Call the MOS API via RST 8 with the desired parameters in HL, DE and BC.
 \G Return the return code as in the A register.
@@ -382,6 +382,22 @@ CODE OSCALL ( HL DE BC func --- res)
     RST .LIL $8
     LD DE, $00
     LD E, A
+    POP IY
+    POP IX
+    NEXT
+END-CODE
+
+CODE OSCALL2 ( HL DE BC func --- DE )
+\G Call the MOS API via RST 8 with the desired parameters in HL, DE and BC.
+\G Return the return code as in the DE register.
+    LD A, E
+    EXX
+    POP BC
+    POP DE
+    POP HL
+    PUSH IX
+    PUSH IY
+    RST .LIL $8
     POP IY
     POP IX
     NEXT
@@ -526,8 +542,8 @@ LABEL CURFILEADDR ENDASM
   DUP 80 0 SCAN DROP OVER - 
 ;
     
-: OPEN ( --- )
-\G Load a file into the source file buffer.    
+: OPEN ( "ccc" --- )
+\G Make the specified file the current file.
  BL WORD COUNT CURFILENAME >ASCIIZ ;
 
 01 
@@ -624,6 +640,43 @@ VARIABLE FID
 \G Close the open file described by fid.
   0 0 ROT $B OSCALL DROP 0 ;
 
+: READ-FILE ( c-addr u1 fid --- u2 ior)
+\G Read data from the file indicated by fid, into the buffer starting
+\G at c-addr. Read at most u1 bytes. u2 is the number of bytes read.
+    $1A OSCALL2 0 
+;
+
+: WRITE-FILE ( c-addr u1 fid --- u2 ior)
+\G Write data from the file indicated by fid, from the buffer starting
+\G at c-addr. Write at most u1 bytes. u2 is the number of bytes written.
+    $1B OSCALL2 0 
+;
+
+: REPOSITION-FILE ( ud fid --- ior )
+\G Position the file indicated by fid to the offset indicated by ud.    
+    $1C OSCALL
+;
+
+: RESIZE-FILE ( ud fid --- ior )
+\G Resize the file indicated by fid to the size indicated by ud. Currently
+\G unimplemented
+    2DROP DROP -1 ;
+;
+
+: FILE-POSITION ( fid --- ud ior)
+\G Return the file position. Currently unimplemented.    
+  DROP 0 0 -1
+;
+
+: FILE-SIZE ( fid --- ud ior)
+\G Return the file size. Currently unimplemented.    
+  DROP 0 0 -1
+;
+
+: DELETE-FILE ( c-addr u --- ior)
+\G Delete the file whose name is specified by c-addr u.   
+  OSSTRING >ASCIIZ OSSTRING 0 0 5 OSCALL ;
+    
 \ PART 11: INTERPRETER HELPER WORDS
 
 \ First we need FIND and related words.

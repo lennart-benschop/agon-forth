@@ -1082,7 +1082,7 @@ CODE P@ ( p-addr --- c)
     LD C, E
     LD B, D
     LD DE, 0
-    LD E, (C)
+    IN E, (C)
     NEXT
 END-CODE
 
@@ -1091,7 +1091,7 @@ CODE P! ( c p-addr ---)
     LD C, E
     LD B, D
     POP DE
-    LD (C), E
+    OUT (C), E
     POP DE
     NEXT
 END-CODE
