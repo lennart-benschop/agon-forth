@@ -11,6 +11,11 @@ The forth124 directory contains a 24-bit FORTH for Agon, to be run in
 eZ80 ADL mode. This can use all available RAM. This has slightly more words
 than 16-bit FORTH.
 
+## forthlib
+
+The forthlib directory contains library files, intended to be loaded via
+the require command (so far only available in forth24).
+
 ## examples
 
 The examples directory contains FORTH example programs that are not specific to Agon FORTH, but that can run under it (and under both versions).

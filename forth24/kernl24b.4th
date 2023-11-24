@@ -3,6 +3,7 @@
 \ copyleft (c) 2022 L.C. Benschop for Cerberus 2080.
 \ copyleft (c) 2023 L.C. Benschop Agon FORTH
 \ license: GNU General Public License version 3, see LICENSE for more details.
+ADD-SOURCE-FILE /forth24/kernl24b.4th
 CROSS-COMPILE
 
 \ PART 4: Constants and variables
@@ -405,30 +406,12 @@ END-CODE
 
 : ACCEPT ( c-addr n1 --- n2 )
 \G Read a line from the terminal to a buffer starting at c-addr with
-    \G length n1. n2 is the number of characters read,
-    >R 0
-    BEGIN
-	KEY DUP 127 = 
-	IF \ Backspace/delete
-	    DROP DUP IF 1-  BL EMIT BACKSPACE BACKSPACE THEN 
-	ELSE
-	    DUP 13 = 
-	    IF \ CR
-		DROP SWAP DROP R> DROP SPACE EXIT      
-	    ELSE
-              DUP 31 > IF
-		DUP EMIT 
-		OVER R@ - IF   
-		    >R OVER OVER + R> SWAP C! 1+
-		ELSE
-		    DROP
-		THEN
-              ELSE
-                DROP
-              THEN
-	    THEN 
-	THEN 
-    0 UNTIL         
+\G length n1. n2 is the number of characters read,
+    2DUP 0 2 PICK C!
+    0 SWAP $09 OSCALL DROP
+    OVER SWAP 0 SCAN DROP SWAP - SPACE
+    0 SYSVARS 5 + C!
+    0 SYSVARS $18 + C!
 ;
 
 
@@ -437,7 +420,7 @@ END-CODE
 
 VARIABLE TIB ( --- addr) 
 \G is the standard terminal input buffer.
-80 CHARS-T ALLOT-T
+128 CHARS-T ALLOT-T
 
 VARIABLE SPAN ( --- addr)
 \G This variable holds the number of characters read by EXPECT.
@@ -461,6 +444,17 @@ VARIABLE #SRC ( --- addr)
 VARIABLE LOADLINE ( --- addr)
 \G This variable holds the line number in the file being included.
 
+VARIABLE SOURCE-LINK ( --- addr)
+\G This variable holds the pointer to the last source file name compiled.
+
+VARIABLE INCLUDE-NAME ( --- addr)
+\G This variable points to the name of the file currently being compiled.
+
+VARIABLE ERRFILE
+\G Varriable that holds a pointer to the file name in which an error occured
+
+VARIABLE ERRLINE
+\G Variable that holds the line number in which an error occured
 
 : EXPECT ( c-addr u --- )
 \G Read a line from the terminal to a buffer at c-addr with length u.
@@ -568,7 +562,7 @@ CONSTANT R/W ( --- mode)
 ;    
 
 : FGETC ( fid --- c|-1)
-    \G Read a single character from a file or return -1 for EOF.
+\G Read a single character from a file or return -1 for EOF.
     DUP FEOF IF
 	DROP -1 
     ELSE
@@ -689,6 +683,7 @@ VARIABLE FID
 
 \ Dictionary definitions are built as follows:
 \
+\ VIEW field: 1 cell, line number in source file.
 \ LINK field: 1 cell, aligned, contains name field of previous word in thread.
 \ NAME field: counted string of at most 31 characters.
 \             bits 5-7 of length byte have special meaning.
@@ -700,9 +695,9 @@ VARIABLE FID
 \ PARAMETER field: (body) Contains the data of constants and variables etc.
 
 VARIABLE FORTH-WORDLIST ( --- addr)
-17 CELLS-T ALLOT-T
 \G This array holds pointers to the last definition of each thread in the Forth
 \G word list.
+17 CELLS-T ALLOT-T
 
 VARIABLE LAST ( --- addr)
 \G This variable holds a pointer to the last definition created.
@@ -718,13 +713,36 @@ VARIABLE CURRENT ( --- addr)
 \G This variable holds the address of the word list to which new definitions
 \G are added.
 
-: HASH ( c-addr u #threads --- n)
+\ Use a code definition instead.
+\ : HASH ( c-addr u #threads --- n)
+\  >R OVER C@ 1 LSHIFT OVER 1 > IF ROT CHAR+ C@ 2 LSHIFT XOR ELSE ROT DROP
+\   THEN XOR
+\  R> 1- AND
+\ ;
+CODE HASH ( c-addr u #threads --- n)
 \G Compute the hash function for the name c-addr u with the indicated number
-    \G of threads.
-  >R OVER C@ 1 LSHIFT OVER 1 > IF ROT CHAR+ C@ 2 LSHIFT XOR ELSE ROT DROP
-   THEN XOR
-  R> 1- AND
-;
+\G of threads.
+    POP BC
+    POP HL
+    LD A, C
+    CP $1
+    LD A, $0
+    0<> IF
+	INC HL
+	LD A, (HL)  \ If length > 1 use second char in hash
+	ADD A, A
+	DEC HL
+    THEN
+    XOR (HL)   \ Use first char
+    ADD A, A
+    XOR C      \ XOR length
+    DEC E
+    AND E
+    LD DE, $0
+    LD E, A 
+    NEXT
+END-CODE    
+
 
 : SEARCH-WORDLIST ( c-addr u wid --- 0 | xt 1 | xt -1)
 \G Search the wordlist with address wid for the name c-addr u.

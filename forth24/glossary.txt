@@ -280,6 +280,7 @@ u is the absolute value of n.
 
 ACCEPT   c-addr n1 --- n2                                                      
 Read a line from the terminal to a buffer starting at c-addr with
+length n1. n2 is the number of characters read,
 
 AGAIN   x ---                                                                  
 Terminate a loop forever BEGIN..AGAIN loop.    
@@ -388,10 +389,6 @@ a-addr2 is the address of the previous cell before a-addr1.
 CELLS   n2 --- n1                                                              
 n2 is the number of address units occupied by n1 cells.
 
-CELLS-T                                                                        
-This array holds pointers to the last definition of each thread in the Forth
-word list.
-
 CHAR   "ccc" --- c                                                             
 Return the first character of "ccc".
 
@@ -478,6 +475,9 @@ Print double number d right-justified in a field of width n.
 D0=   d ---f                                                                   
 f is true if and only if d is equal to zero.    
 
+D<   d1 d2 --- f                                                               
+Compared d1 and d2, flag = ture is d1<d2
+
 D=   d1 d1  --- f                                                              
 f is true if and only if d1 and d2 are equal.
 
@@ -533,6 +533,9 @@ Variable that holds the decimal point location for numerical conversion.
 DROP   x ---                                                                   
 Discard the top item on the stack.        
 
+DU<   ud1 ud2 --- f                                                            
+Compared d1 and d2, flag = ture is d1<d2
+
 DUMP   addr len ---                                                            
 Show a hex/ascii dump of the memory block of len bytes at addr
 
@@ -567,6 +570,12 @@ Return an environmental query of the string c-addr u
 ERASE   c-addr u                                                               
 Fill memory region of u bytes starting at c-addr with zero.    
 
+ERRFILE                                                                        
+Varriable that holds a pointer to the file name in which an error occured
+
+ERRLINE                                                                        
+Variable that holds the line number in which an error occured
+
 ERROR$   --- a-addr                                                            
 Variable containing string address of ABORT" message.
 
@@ -594,6 +603,9 @@ Address below which we are not allowed to forget.
 
 FEOF   fid --- f                                                               
 Check end-of-file.
+
+FGETC   fid --- c|-1                                                           
+Read a single character from a file or return -1 for EOF.
 
 FILE-POSITION   fid --- ud ior                                                 
 Return the file position. Currently unimplemented.    
@@ -624,6 +636,10 @@ Remove word "ccc" from the dictionary, and anything defined later.
 FORTH   ---                                                                    
 REplace the last wordlist in the search order with FORTH-WORDLIST
 
+FORTH-WORDLIST   --- addr                                                      
+This array holds pointers to the last definition of each thread in the Forth
+word list.
+
 FPUTC   c fid ---                                                              
 Put a single character into a file.
 
@@ -641,9 +657,7 @@ Variable containing return stack address where THROW should return.
 
 HASH   c-addr u #threads --- n                                                 
 Compute the hash function for the name c-addr u with the indicated number
-
-HEADER   ---                                                                   
-Create a header for a new definition without a code field.
+of threads.
 
 HERE   --- c-addr                                                              
 The address of the dictionary pointer. New space is allocated here.
@@ -687,6 +701,9 @@ This is the buffer where the lines of included files are stored.
 INCLUDE-FILE   fid ---                                                         
 Read lines from the file identified by fid and interpret them.
 INCLUDE and EVALUATE nest in arbitrary order.
+
+INCLUDE-NAME   --- addr                                                        
+This variable points to the name of the file currently being compiled.
 
 INCLUDE-POINTER   --- a-addr                                                   
 This variable holds the address where the included line is stored.
@@ -784,6 +801,7 @@ Convert the counted string at c-addr to a double binary number.
 f is true if and only if the conversion was successful. DPL contains
 -1 if there was no point in the number, else the position of the point
 from the right. Prefixes: # means decimal, $ means hex, % means binary.
+Can also use 'c' to specify character.    
 
 OF   --- x                                                                     
 Start an OF..ENDOF block. At runtime it pops a value from the stack and
@@ -895,6 +913,16 @@ flag is 0 at the end of file (no line could be read) TRUE otherwise.
 (ior is 0 in this case.)
 n2 is the length of the line read,
 
+RECORD-CURFILE   c-addr u ---                                                  
+Record in the dictionary that you are compiling filename specified by
+c-addr u. At the start of file include. So VIEW can find the file.
+
+RECORD-FILE-RETURN   ---                                                       
+Record a recference record to the SOURCE-LINK chain. It contains a
+zero lenght byte followed by a pointer to the record containing the
+actual name. At the end of a nested include. So VIEW can find the
+correct source file.
+
 RECURSE   ---                                                                  
 Compile a call to the current (not yet finished) definition.
 
@@ -907,6 +935,13 @@ part of BEGIN WHILE REPEAT construction.
 
 REPOSITION-FILE   ud fid --- ior                                               
 Position the file indicated by fid to the offset indicated by ud.    
+
+REQUIRE   "ccc" ---                                                            
+Parse file name from source file and load that if not already loaded.    
+
+REQUIRED   c-addr u ---                                                        
+Check that the file with the name c-addr u is already loaded and
+load it only if it is not already loaded.    
 
 RESIZE-FILE   ud fid --- ior                                                   
 Resize the file indicated by fid to the size indicated by ud. Currently
@@ -946,9 +981,6 @@ Variable that holds the bottom address of the stack.
 S>D   n --- d                                                                  
 Convert single number to double number.
 
-SAVE-SYSTEM   "ccc"  ---                                                       
-Save the current FORTH system to the specifed file.    
-
 SCAN   c-addr1 u1 c --- c-addr2 u2                                             
 Find the first occurrence of character c in the string c-addr1 u1
 c-addr2 u2 is the remaining part of the string starting with that char.
@@ -957,6 +989,9 @@ It is a zero-length string if c was not found.
 SEARCH-WORDLIST   c-addr u wid --- 0 | xt 1 | xt -1                            
 Search the wordlist with address wid for the name c-addr u.
 Return 0 if not found, the execution token xt and -1 for non-immediate
+
+SEE   "ccc" ---                                                                
+Decompile the dictionary entry specified by "ccc" and show it.
 
 SET-ORDER   w1 w2 ... wn n ---                                                 
 Set the search order to the n wordlists given on the stack.
@@ -982,6 +1017,9 @@ Return the address and length of the current input source.
 SOURCE-ID   --- sid                                                            
 Return the i.d. of the current source i.d., 0 for terminal, -1
 for EVALUATE and positive number for INCLUDE file.
+
+SOURCE-LINK   --- addr                                                         
+This variable holds the pointer to the last source file name compiled.
 
 SP!   a-addr ---                                                               
 Set the stack pointer to a-addr.
@@ -1087,6 +1125,9 @@ VARIABLE   "ccc" ---
 Create a variable where 1 cell can be stored. When executed it
 returns the address.
 
+VIEW   "ccc" ---                                                               
+Open the editor at the source of the specified word.
+
 VOC-LINK                                                                       
 Variable that links all vocabularies together, so we can link.
 
@@ -1100,6 +1141,9 @@ Write only file access mode.
 WARM   ---                                                                     
 This word is called when an error occurs. Clears the stacks, sets
 BASE to decimal, closes the files and resets the search order.
+
+WHERE   ---                                                                    
+Open the editor at the source location where an error occurred.
 
 WHILE   x1 --- x2 x1                                                           
 part of BEGIN WHILE REPEAT construction.

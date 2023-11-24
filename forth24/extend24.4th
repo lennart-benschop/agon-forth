@@ -2,6 +2,7 @@
 \ created 1994 by L.C. Benschop.
 \ copyleft (c) 1994-2014 by the sbc09 team, see AUTHORS for more details.
 \ copyleft (c) 2022 L.C. Benschop for Cerberus 2080.
+\ copyleft (c) 2023 L.C. Benschop for Agon Forth.
 \ license: GNU General Public License version 3, see LICENSE for more details.
 
 : \G POSTPONE \ ; IMMEDIATE
@@ -12,23 +13,6 @@
 : ?TERMINAL ( ---f)
 \G Test whether the ESC key is pressed, return a flag.     
     KEY? IF KEY 27 = IF -1 ELSE KEY DROP 0 THEN  ELSE 0 THEN ;
-
-: COMPARE ( addr1 u1 addr2 u2 --- diff )
-\G Compare two strings. diff is negative if addr1 u1 is smaller, 0 if it
-\G is equal and positive if it is greater than addr2 u2.
-  ROT 2DUP - >R
-  MIN DUP IF
-   >R
-   BEGIN
-    OVER C@ OVER C@ - IF
-     SWAP C@ SWAP C@ - R> DROP R> DROP EXIT
-    THEN
-    1+ SWAP 1+ SWAP
-    R> 1- DUP >R 0=
-   UNTIL R>
-  THEN DROP
-  DROP DROP R> NEGATE
-;
 
 : ERASE ( c-addr u )
 \G Fill memory region of u bytes starting at c-addr with zero.    
@@ -139,7 +123,7 @@ CONSTANT ROOT-WORDLIST ( --- wid )
 
 : (FORGET) ( xt ---)
 \G Forget the word indicated by xt and everything defined after it.    
-    >NAME CELL- DUP FENCE @ U< -6 ?THROW \ Check we are not below fence.
+    >NAME CELL- CELL- DUP FENCE @ U< -6 ?THROW \ Check we are not below fence.
     >R \ Store new dictionary pointer to return stack.
     VOC-LINK @   
     BEGIN  \ Traverse all worlists
@@ -159,6 +143,20 @@ CONSTANT ROOT-WORDLIST ( --- wid )
 	@
 	DUP 0=
     UNTIL DROP
+    SOURCE-LINK 
+    BEGIN
+	@
+	R@ OVER U< 0=
+    UNTIL
+    SOURCE-LINK ! \ Fix the list of loaded source files.
+    R@ INCLUDE-NAME @ U< IF
+	SOURCE-LINK @ CELL+ C@ 0= IF
+	    SOURCE-LINK @ CELL+ 1+ @
+	ELSE
+	    SOURCE-LINK @ 
+	THEN
+	INCLUDE-NAME !
+    THEN
     R> DP ! \ Adjust dictionary pointer.
 ;
 
@@ -399,6 +397,27 @@ DEFINITIONS
 \G Execute the specified system command.    
   CR OSSTRING >ASCIIZ OSSTRING 0 0 16 OSCALL -39 ?THROW ;  
 
+: FIND-SOURCEFILE ( c-addr u --- f)
+    SOURCE-LINK @ >R
+    BEGIN
+         2DUP R@ CELL+ COUNT COMPARE R@ 0<> AND
+    WHILE
+	    R> @ >R
+    REPEAT
+    2DROP R> 0<> ;
+
+: REQUIRED ( c-addr u ---)
+\G Check that the file with the name c-addr u is already loaded and
+\G load it only if it is not already loaded.    
+    S" /forthlib/" OSSTRING >ASCIIZ \ Put path prefix into string buffer
+    OSSTRING ASCIIZ> + >ASCIIZ \ Append file name.
+    OSSTRING ASCIIZ> FIND-SOURCEFILE 0= IF OSSTRING ASCIIZ> INCLUDED THEN
+;
+
+: REQUIRE  ( "ccc" --- )
+\G Parse file name from source file and load that if not already loaded.    
+  BL WORD COUNT REQUIRED ;  
+
 : EDIT-FILE ( c-addr u lineno --- )
 \G Invoke the system editor on the file whose name is specified by c-addr u
 \G at the specified line number.    
@@ -413,13 +432,46 @@ DEFINITIONS
     0 SYSVARS 5 + C!
 ;
 
+: VIEW ( "ccc" ---)
+\G Open the editor at the source of the specified word.
+    ' >NAME CELL- CELL- DUP @ DUP
+    IF \ Is line number nonzero?
+	>R >R
+	SOURCE-LINK @
+	BEGIN \ Find first filename record below dictionary entry.
+	    R@ OVER U<
+	WHILE
+            @		
+	REPEAT
+	R> DROP CELL+ DUP C@ 0= IF
+	    1+ @ CELL+ 
+	THEN
+	COUNT R> EDIT-FILE
+    ELSE
+	2DROP
+    THEN
+;
+
+: WHERE ( --- )
+\G Open the editor at the source location where an error occurred.
+    ERRFILE @ IF
+	ERRFILE @ CELL+ C@ IF
+	    ERRFILE @ CELL+ COUNT
+	ELSE
+	    ERRFILE @ CELL+ 1+ @ CELL+ COUNT
+	THEN
+	ERRLINE @ EDIT-FILE
+    THEN
+;
+    
 : ED ( --- )
 \G Invoke the editor on the current file (selected with OPEN)   
     CURFILENAME C@ 0= -38 ?THROW
     CURFILENAME ASCIIZ> 1 EDIT-FILE ;
     
 : SAVE-SYSTEM ( "ccc"  --- )
-\G Save the current FORTH system to the specifed file.    
+    \G Save the current FORTH system to the specifed file.
+    LOADLINE OFF
     0 CURFILENAME C! \ Do not want stray current file here.
     $40000 HERE OVER - BSAVE ;
 
@@ -450,11 +502,13 @@ DEFINITIONS
 
 CAPS ON
 
-S" asmez80.4th" INCLUDED
-     
+INCLUDE /forth24/asmez80.4th
+
+REQUIRE see.4th
+
 HERE FENCE !
 
-DELETE forth24.bin
+DELETE /forth24/forth24.bin
 CR .( Saving system as forth24.bin ) CR
-SAVE-SYSTEM forth24.bin
+SAVE-SYSTEM /forth24/forth24.bin
 BYE

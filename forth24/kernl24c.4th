@@ -3,6 +3,7 @@
 \ copyleft (c) 2022 L.C. Benschop for Cerberus 2080.
 \ copyleft (c) 2023 L.C. Benschop Agon FORTH
 \ license: GNU General Public License version 3, see LICENSE for more details.
+ADD-SOURCE-FILE /forth24/kernl24c.4th
 CROSS-COMPILE
 
 \ PART 12:  numeric input.
@@ -140,7 +141,8 @@ THEN
   COUNT 31 AND +  ;
 
 : HEADER ( --- )
-\G Create a header for a new definition without a code field.
+  \G Create a header for a new definition without a code field.
+  LOADLINE @ , \ Add loadline (for view).  
   0 , \ Create link field.
   HERE LAST !         \ Set LAST so definition can be linked by REVEAL
   32 WORD UPPERCASE?
@@ -428,7 +430,9 @@ VARIABLE ERRORS ( --- a-addr)
 : ERROR-SOURCE ( --- )
 \G Print location of error source.
      SID @ 0 > IF
-      ." in line " LOADLINE @ .
+	 ." in line " LOADLINE @ .
+	 LOADLINE @ ERRLINE !
+	 INCLUDE-NAME @ ERRFILE !
      THEN
      HERE COUNT TYPE CR WARM
 ;
@@ -460,12 +464,37 @@ VARIABLE INCLUDE-POINTER ( --- a-addr)
   THEN
 ;
 
+: RECORD-CURFILE ( c-addr u ---)
+\G Record in the dictionary that you are compiling filename specified by
+\G c-addr u. At the start of file include. So VIEW can find the file.
+    2DUP SOURCE-LINK @ CELL+ COUNT COMPARE
+    IF
+	\ Add the current file name to the dictionary.
+	HERE SOURCE-LINK @ , SOURCE-LINK !
+	DUP >R HERE PLACE R> CELL+ 1+ ALLOT
+    ELSE
+	\ No new record if already present at start of source file chain.
+	2DROP
+    THEN
+    SOURCE-LINK @ INCLUDE-NAME !
+; 
 
+: RECORD-FILE-RETURN ( --- )
+\G Record a recference record to the SOURCE-LINK chain. It contains a
+\G zero lenght byte followed by a pointer to the record containing the
+\G actual name. At the end of a nested include. So VIEW can find the
+\G correct source file.
+    INCLUDE-NAME @ IF
+      HERE SOURCE-LINK @ , SOURCE-LINK !
+	0 C, INCLUDE-NAME @ ,
+    THEN	
+;    
+    
 : INCLUDE-FILE ( fid --- ) 
 \G Read lines from the file identified by fid and interpret them.
 \G INCLUDE and EVALUATE nest in arbitrary order.
   INCLUDE-POINTER @ >R SID @ >R SRC @ >R #SRC @ >R >IN @ >R
-  LOADLINE >R
+  LOADLINE @ >R
   #SRC @ INCLUDE-POINTER +! INCLUDE-POINTER @ SRC !
   SID ! 0 LOADLINE !
   BEGIN
@@ -479,9 +508,11 @@ VARIABLE INCLUDE-POINTER ( --- a-addr)
 
 : INCLUDED  ( c-addr u ---- )
 \G Open the file with name c-addr u and interpret all lines contained in it.
-  R/O OPEN-FILE -38 ?THROW 
+  2DUP R/O OPEN-FILE -38 ?THROW
+  INCLUDE-NAME @ >R ROT ROT RECORD-CURFILE  
   DUP >R INCLUDE-FILE
-  R> CLOSE-FILE DROP      
+  R> CLOSE-FILE DROP
+  R> INCLUDE-NAME ! RECORD-FILE-RETURN  
 ; 
 
 : INCLUDE ( "ccc")
@@ -513,7 +544,8 @@ VARIABLE NESTING
 \G This word resets the return stack, resets the compiler state, the include
 \G buffer and then it reads and interprets terminal input.
   R0 @ RP! [
-  NESTING OFF  
+  NESTING OFF
+  INCLUDE-NAME OFF  
   TIB SRC ! 0 SID !
   INCLUDE-BUFFER INCLUDE-POINTER !
   BEGIN
@@ -553,7 +585,7 @@ VARIABLE NESTING
 : F-STARTUP
     \G This is the first colon definition called after a (cold) startup.
     AT-STARTUP @ 0= IF
-      ." Agon 24-bit eZ80 Forth v0.12, 2023-10-22 GPLv3" CR
+      ." Agon 24-bit eZ80 Forth v0.13, 2023-11-24 GPLv3" CR
       ." Copyright (C) 2023 L.C. Benschop, Brad Rodriguez" CR
     THEN	
     0 SYSVARS 5 + C!
@@ -622,6 +654,7 @@ RESOLVE (POSTPONE)
 #THREADS T' FORTH-WORDLIST >BODY-T 03 + !-T
 TLINKS T' FORTH-WORDLIST >BODY-T 06 + #THREADS CELLS>TARGET
 THERE   T' DP             >BODY-T !-T
+SOURCE-lINK-T @ T' SOURCE-LINK >BODY-T !-T
 
 CR .( Type the following command:)
 CR IMAGE U.  THERE ORIGIN - U. .( BSAVE kernel24.bin)

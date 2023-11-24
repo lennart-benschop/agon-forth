@@ -64,7 +64,7 @@ run &40000 tetris.4th
 
 You should now see a message like this:
 ```
-Agon 24-bit eZ80 Forth, 2023-07-02 GPLv3
+Agon 24-bit eZ80 Forth v0.13, 2023-11-24 GPLv3
 Copyright 2023 L.C. Benschop, Brad Rodriguez
 ```
 
@@ -164,6 +164,21 @@ with FORGET SQUARES. You can edit and reload that file many times and each
 time it will forget the old definition of SQUARES before compiling the new
 one.
 
+`SEE <word>`
+
+This invokes the decompiler and shows how a specific word was compiled.
+This is not the full source code, but the list of words in the threaded
+code. Constructs like IF and BEGIN are shown as branches.
+
+`VIEW <word>`
+
+This invokes the editor on the source file (at the source line) from which the
+word was compiled.
+
+`WHERE`
+
+Invokes the editor at the source file and line of the last compile error.
+
 ## File related commands
 
 
@@ -195,6 +210,16 @@ for MS-DOS, introduced in 1988.
 `CAT`
 
 Show all files on disk.
+
+`INCLUDE <name>`
+
+Include the specified file like FLOAD, but do not select it as the current
+file for editing.
+
+`REQUIRE <name>`
+
+Include the specified library file from the directory /forthlib, if
+and only if it was not loaded before.
 
 `DELETE <name>`
 
@@ -436,12 +461,12 @@ Finally it will exit FORTH and return to the MOS prompt.
 
 On the Agon MOS prompt, load and run kernel24.bin
 
-load kernel80.bin
+load kernel24.bin
 run
 
 This starts a minimal FORTH system. You can now load the extensions.
 
-FLOAD extend24.4th
+FLOAD /forth24/extend24.4th
 
 When extend24.4th and asmez80.4th are loaded a lot of Redefining
 messages are shown. This is normal.  extend24.4th will also load the assembler and save the rebuilt forth24.bin file and exit FORTH.

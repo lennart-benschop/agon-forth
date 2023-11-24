@@ -33,6 +33,7 @@ ASSEMBLE HEX
 ENDASM
 
 DECIMAL
+ADD-SOURCE-FILE /forth24/kernl24a.4th
 CROSS-COMPILE
 
 \ PART 1: Runtime parts of defining words
@@ -239,6 +240,7 @@ END-CODE
 CODE UNLOOP ( --- )
 \G Undo return stack effect of loop, can be followed by EXIT    
     LEA IX, 6 IX+
+    NEXT
 END-CODE
 
 CODE R@ ( --- x)
@@ -1177,7 +1179,44 @@ CODE INVERT ( x1 --- x2)
     DEC DE     \ And decrement it.
     NEXT
 END-CODE    
-    
+
+CODE D< ( d1 d2 --- f)
+\G Compared d1 and d2, flag = ture is d1<d2
+    EXX
+    POP HL
+    POP BC
+    POP DE
+    EX DE, HL
+    AND A
+    SBC HL, DE
+    PUSH BC
+    EXX
+    POP HL
+    SBC HL, DE
+    LD DE, 0  \ False result to TOS
+    JP PE, LESS_OVF
+    JP M, YES \ No overflow, less if negative
+    NEXT
+END-CODE    
+
+CODE DU< ( ud1 ud2 --- f)
+\G Compared d1 and d2, flag = ture is d1<d2
+    EXX
+    POP HL
+    POP BC
+    POP DE
+    EX DE, HL
+    AND A
+    SBC HL, DE
+    PUSH BC
+    EXX
+    POP HL
+    SBC HL, DE
+    LD DE, 0  \ False result to TOS
+    JP C, YES \ True if carry.
+    NEXT
+END-CODE
+
 CODE CMOVE ( c-addr1 c-addr2 u ---)
 \G Copy u bytes starting at c-addr1 to c-addr2, proceeding in ascending
 \G order.
@@ -1237,6 +1276,54 @@ CODE FILL ( c-addr u c ---)
     THEN
     POP DE
     NEXT
+END-CODE
+
+CODE COMPARE ( addr1 u1 addr2 u2 --- diff )
+\G Compare two strings. diff is negative if addr1 u1 is smaller, 0 if it
+\G is equal and positive if it is greater than addr2 u2.
+    EXX
+    POP HL   \ Get address of string 2
+    EXX
+    POP HL   \ Get length of string 1 (length string 2 in DE)
+    EXX
+    POP DE   \ Get address of string 1
+    EXX
+    AND A
+    SBC HL, DE
+    PUSH HL  \ Push length1 - length2
+    U< IF
+      ADD HL, DE 
+    ELSE
+      EX DE, HL 	
+    THEN	
+    \ Minimum in HL.
+    LD DE, 0
+    AND A
+    SBC HL, DE
+    0<> IF
+	LD DE, 1
+	BEGIN
+	    EXX
+	    LD A, (DE)
+	    SUB (HL)
+	    INC DE
+	    INC HL
+	    0<> IF
+		LD DE, 1
+		U< IF
+		    LD DE, -1
+		THEN
+		POP HL
+		NEXT
+	    THEN
+	    EXX
+	    AND A
+	    SBC HL, DE
+	0= UNTIL  
+    THEN
+    \ Strings were equal, return length difference.
+    POP DE
+    NEXT 
 END-CODE
 
 CODE (FIND) ( c-addr u nfa  --- cfa/word f )

@@ -138,6 +138,7 @@ VARIABLE LAST-T          \ Address of last definition.
 : "HEADER >IN @ CREATE >IN ! \ Create the shadow definition.
   BL WORD
   DUP COUNT #THREADS HASH >R \ Compute the hash code.
+  LOADLINE @ ,-T \ Lay out the source line (for view).  
   ALIGN-T TLINKS R@ CELLS + @ ,-T        \ Lay out the link field.
 \D  DUP COUNT CR ." Creating: " TYPE ."  Hash:" R@ .
   COUNT DUP >R THERE PLACE-T  \ Place name in target dictionary.
@@ -319,6 +320,12 @@ VARIABLE DPL
   DUP 0= UNTIL DROP DROP R> IF DNEGATE THEN
   R> BASE ! -1
 ;
+
+VARIABLE SOURCE-LINK-T
+\ Add a source file name to the dictionary, for view command.
+: ADD-SOURCE-FILE
+    THERE SOURCE-LINK-T @ ,-T SOURCE-LINK-T !
+    BL WORD COUNT DUP >R THERE PLACE-T R> 1+ ALLOT-T ;
 
 : CROSS-COMPILE
   ONLY TARGET DEFINITIONS ALSO TRANSIENT \ Restrict search order.
