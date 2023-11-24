@@ -7,9 +7,14 @@ The forth16 directory contains a 16-bit FORTH for Agon, to be run in Z-80 mode.
 
 ## forth24
 
-The forth124 directory contains a 24-bit FORTH for Agon, to be run in
+The forth24 directory contains a 24-bit FORTH for Agon, to be run in
 eZ80 ADL mode. This can use all available RAM. This has slightly more words
 than 16-bit FORTH.
+
+For the VIEW command to work, it is necessary to store all files from
+the forth24 subdirectory into the /forth24 directory on the SD card
+and to store the see.4th file into the /forthlib directory on the SD
+card.
 
 ## forthlib
 
