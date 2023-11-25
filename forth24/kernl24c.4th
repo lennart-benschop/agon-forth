@@ -517,7 +517,7 @@ VARIABLE INCLUDE-POINTER ( --- a-addr)
 
 : INCLUDE ( "ccc")
 \G Open the file with name "ccc" and interpret all lines contained in it.    
-    BL WORD COUNT INCLUDED ;
+    BL WORD COUNT OSSTRING >ASCIIZ OSSTRING ASCIIZ>  INCLUDED ;
 
 : OK ( ---)
 \G Load the file opened with OPEN    
@@ -585,7 +585,7 @@ VARIABLE NESTING
 : F-STARTUP
     \G This is the first colon definition called after a (cold) startup.
     AT-STARTUP @ 0= IF
-      ." Agon 24-bit eZ80 Forth v0.13, 2023-11-24 GPLv3" CR
+      ." Agon 24-bit eZ80 Forth v0.14, 2023-11-25 GPLv3" CR
       ." Copyright (C) 2023 L.C. Benschop, Brad Rodriguez" CR
     THEN	
     0 SYSVARS 5 + C!
