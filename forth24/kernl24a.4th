@@ -1181,7 +1181,7 @@ CODE INVERT ( x1 --- x2)
 END-CODE    
 
 CODE D< ( d1 d2 --- f)
-\G Compared d1 and d2, flag = ture is d1<d2
+\G Compare d1 and d2, flag = true if d1<d2
     EXX
     POP HL
     POP BC
@@ -1200,7 +1200,7 @@ CODE D< ( d1 d2 --- f)
 END-CODE    
 
 CODE DU< ( ud1 ud2 --- f)
-\G Compared d1 and d2, flag = ture is d1<d2
+\G Compare ud1 and ud2, flag = true if ud1<ud2
     EXX
     POP HL
     POP BC

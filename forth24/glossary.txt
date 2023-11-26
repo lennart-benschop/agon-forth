@@ -476,7 +476,7 @@ D0=   d ---f
 f is true if and only if d is equal to zero.    
 
 D<   d1 d2 --- f                                                               
-Compared d1 and d2, flag = ture is d1<d2
+Compare d1 and d2, flag = true if d1<d2
 
 D=   d1 d1  --- f                                                              
 f is true if and only if d1 and d2 are equal.
@@ -534,7 +534,7 @@ DROP   x ---
 Discard the top item on the stack.        
 
 DU<   ud1 ud2 --- f                                                            
-Compared d1 and d2, flag = ture is d1<d2
+Compare ud1 and ud2, flag = true if ud1<ud2
 
 DUMP   addr len ---                                                            
 Show a hex/ascii dump of the memory block of len bytes at addr
