@@ -299,6 +299,19 @@ LABEL LAST-KEY
 01 ALLOT-T
 ENDASM
 
+\ 0. CTRL
+\ 1. SHIFT
+\ 2. ALT LEFT
+\ 3. ALT RIGHT
+\ 4. CAPS LOCK
+\ 5. NUM LOCK
+\ 6. SCROLL LOCK
+\ 7. GUI
+
+LABEL LAST-MOD
+01 ALLOT-T
+ENDASM
+
 CODE KEY ( --- c)
 \G Wait until a key is pressed and return the ASCII code
     PUSH IX
@@ -357,6 +370,8 @@ CODE KEY? ( --- f)
     LD  A, $18 (IX+)  \ Check key down.
     SUB $01  \ Carry only if A=0
     U>= IF
+	LD .LIL A, $6 (IX+) \ Check modifier.
+	LD LAST-MOD (), A
 	LD A, $5 (IX+) \ Check non-zero ASCII code.
 	LD LAST-KEY (), A
 	SUB $01
@@ -368,6 +383,51 @@ CODE KEY? ( --- f)
       INC DE
     THEN
     NEXT	
+END-CODE
+
+CODE KEY@ ( --- n)
+\G After KEY? returns true, return the ASCII code of the key. This allows key
+\G input without blocking. The modifiers are returned in the high byte.
+    PUSH DE
+    LD DE, $0
+    LD D, LAST-MOD () \ Modifiers in high byte
+    LD E, LAST-KEY ()
+    LD LAST-KEY (), $0 \ Clear key
+    NEXT
+END-CODE
+
+CODE KEYCODE? ( n --- f)
+\G Return true if keycode of a key is held down. This allows key input without
+\G blocking.
+    PUSH IX
+    LD A, $1E
+    RST .LIL $8 \ Get key matrix bit array
+    LD A, E
+    AND $7F
+    PUSH AF
+    SRL A
+    SRL A
+    SRL A   
+    LD BC, $0
+    LD C, A
+    ADD IX, BC 
+    LD C, $0 (IX+) \ Get byte from key table.
+    POP AF
+    AND $07
+    0<> IF
+	LD B, A \ Bit counter
+	LD A, $01
+	BEGIN
+	    SLA A
+	B--0= UNTIL
+    ELSE
+	LD A, $01
+    THEN
+    AND C \ Set bit
+    LD DE, $0
+    LD E, A \ E=0 and flag
+    POP IX
+    NEXT
 END-CODE
 
 CODE OSCALL ( HL DE BC func --- res)

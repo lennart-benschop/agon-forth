@@ -729,6 +729,14 @@ Wait until a key is pressed and return the ASCII code
 KEY?   --- f                                                                   
 Check if a key is pressed. Return a flag    
 
+KEY@   --- n                                                                   
+After KEY? returns true, return the ASCII code of the key. This allows key
+input without blocking. The modifiers are returned in the high byte.
+
+KEYCODE?   n --- f                                                             
+Return true if keycode of a key is held down. This allows key input without
+blocking.
+
 LAST   --- addr                                                                
 This variable holds a pointer to the last definition created.
 
@@ -1036,6 +1044,9 @@ Output u spaces to the terminal.
 
 SPAN   --- addr                                                                
 This variable holds the number of characters read by EXPECT.
+
+SPLIT   u16 --- b1 b2                                                          
+Split 16-bit value into bytes little end is b2.
 
 SRC   --- addr                                                                 
 This variable holds the address of the current input source.

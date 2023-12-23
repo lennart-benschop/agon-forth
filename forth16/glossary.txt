@@ -131,8 +131,14 @@ n3 is n1 divided by n2.
 /MOD   n1 n2 --- nrem nquot                                                    
 Divide signed number n1 by n2, giving quotient and remainder.
 
+0   --- 0                                                                      
+Stack a literal zero.
+
 0                                                                              
 Used in [IF] [ELSE] [THEN] for conditional compilation.    
+
+0.   --- 0 0                                                                   
+Stack a double zero.
 
 0<   n --- f                                                                   
 f is true if and only if n is less than 0.
@@ -240,6 +246,9 @@ that is no digit.
 
 >R   x ---                                                                     
 Push x on the return stack. 
+
+>X   x ---                                                                     
+Push x on the ADL extended stack.
 
 ?BRANCH   f ---                                                                
 High-level conditonal jump, jumps only if TOS=0    
@@ -388,10 +397,6 @@ a-addr2 is the address of the previous cell before a-addr1.
 CELLS   n2 --- n1                                                              
 n2 is the number of address units occupied by n1 cells.
 
-CELLS-T                                                                        
-This array holds pointers to the last definition of each thread in the Forth
-word list.
-
 CHAR   "ccc" --- c                                                             
 Return the first character of "ccc".
 
@@ -478,8 +483,14 @@ Print double number d right-justified in a field of width n.
 D0=   d ---f                                                                   
 f is true if and only if d is equal to zero.    
 
+D<   d1 d2 --- f                                                               
+Compare d1 and d2, flag = true if d1<d2
+
 D=   d1 d1  --- f                                                              
 f is true if and only if d1 and d2 are equal.
+
+D>X   d ---                                                                    
+Push d on the ADL extended stack as 24 bit.
 
 DABS   d --- ud                                                                
 ud is the absolute value of d.
@@ -523,6 +534,12 @@ Word that contains DOES> will change the behavior of the last created
 word such that it pushes its parameter field address onto the stack
 and then executes whatever comes after DOES>
 
+DOSCALL   dHL dDE dBC func --- DE res                                          
+Call the MOS API via RST 8 with the desired parameters in HL, DE and BC.
+Return the return code as in the A register. This indirectly uses RST 8
+not in ADL mode, calling RST .LIL 8 so leaving extra cells on the stack
+and BC is not the top of stack. This allows for vectoring the mos call.
+
 DP   --- a-addr                                                                
 Variable that contains the dictionary pointer. New space is allocated
 from the address in DP
@@ -533,11 +550,17 @@ Variable that holds the decimal point location for numerical conversion.
 DROP   x ---                                                                   
 Discard the top item on the stack.        
 
+DU<   ud1 ud2 --- f                                                            
+Compare d1 and d2, flag = true if ud1<ud2
+
 DUMP   addr len ---                                                            
 Show a hex/ascii dump of the memory block of len bytes at addr
 
 DUP   x --- x x                                                                
 Duplicate the top cell on the stack.    
+
+DX>   --- d                                                                    
+Pop the top 24 bit of the ADL extended stack and place it on the stack.
 
 ED   ---                                                                       
 Invoke the editor on the current file (selected with OPEN)   
@@ -601,6 +624,9 @@ Address below which we are not allowed to forget.
 FEOF   fid --- f                                                               
 Check end-of-file.
 
+FGETC   fid --- c|-1                                                           
+Read a single character from a file or return -1 for EOF.
+
 FILL   c-addr u c ---                                                          
 Fill a block of u bytes starting at c-addr with character c.
 
@@ -623,6 +649,10 @@ Remove word "ccc" from the dictionary, and anything defined later.
 
 FORTH   ---                                                                    
 REplace the last wordlist in the search order with FORTH-WORDLIST
+
+FORTH-WORDLIST   --- addr                                                      
+This array holds pointers to the last definition of each thread in the Forth
+word list.
 
 FPUTC   c fid ---                                                              
 Put a single character into a file.
@@ -707,6 +737,14 @@ Wait until a key is pressed and return the ASCII code
 KEY?   --- f                                                                   
 Check if a key is pressed. Return a flag    
 
+KEY@   --- n                                                                   
+After KEY? returns true, return the ASCII code of the key. This allows key
+input without blocking. The modifiers are returned in the high byte.
+
+KEYCODE?   n --- f                                                             
+Return true if keycode of a key is held down. This allows key input without
+blocking.
+
 LAST   --- addr                                                                
 This variable holds a pointer to the last definition created.
 
@@ -738,6 +776,9 @@ after it.
 
 MAX   n1 n2 --- n3                                                             
 n3 is the maximum of n1 and n2.
+
+MB@   --- c                                                                    
+Read the value of Memory Base.
 
 MESS"   n "cccq" ---                                                           
 Create an error message for throw code n.
@@ -893,6 +934,13 @@ true if it was successfully refilled.
 REPEAT   x1 x2 ---                                                             
 part of BEGIN WHILE REPEAT construction.
 
+REQUIRE   "ccc" ---                                                            
+Parse file name from source file and load that if not already loaded.    
+
+REQUIRED   c-addr u ---                                                        
+Check that the file with the name c-addr u is already loaded and
+load it only if it is not already loaded.    
+
 RESOLVE-LEAVE                                                                  
 Resolve the references to the leave addresses of the loop.
 
@@ -940,6 +988,9 @@ Search the wordlist with address wid for the name c-addr u.
 Return 0 if not found, the execution token xt and -1 for non-immediate
 words and xt and 1 for immediate words.
 
+SEE   "ccc" ---                                                                
+Decompile the dictionary entry specified by "ccc" and show it.
+
 SET-ORDER   w1 w2 ... wn n ---                                                 
 Set the search order to the n wordlists given on the stack.
 
@@ -965,6 +1016,9 @@ SOURCE-ID   --- sid
 Return the i.d. of the current source i.d., 0 for terminal, -1
 for EVALUATE and positive number for INCLUDE file.
 
+SOURCE-LINK                                                                    
+Variable that contains a link to all files included via RQUIRE
+
 SP!   a-addr ---                                                               
 Set the stack pointer to a-addr.
 
@@ -980,6 +1034,9 @@ Output u spaces to the terminal.
 
 SPAN   --- addr                                                                
 This variable holds the number of characters read by EXPECT.
+
+SPLIT   u16 --- b1 b2                                                          
+Split cell into bytes little end is b2.
 
 SRC   --- addr                                                                 
 This variable holds the address of the current input source.
@@ -1009,7 +1066,7 @@ THROW   n ---
 If n is nonzero, cause the corresponding CATCH to return with n.
 
 TIB   --- addr                                                                 
-is the standard terminal input buffer.
+is the standard terminal input buffer.1
 
 TO   n "ccc" ---                                                               
 Change the value of the following VALUE type word.    
@@ -1041,6 +1098,7 @@ f is true if and only if the unsigned number u1 is greater than u2.
 
 UM*   u1 u2 --- ud                                                             
 Multiply two unsigned numbers, giving double result. 
+Uses MLT even though slightly longer
 
 UM/MOD   ud u1 --- urem uquot                                                  
 Divide the unsigned double number ud by u1, giving unsigned quotient
@@ -1071,10 +1129,6 @@ returns the address.
 
 VOC-LINK                                                                       
 Variable that links all vocabularies together, so we can link.
-
-VOCABULARY   ---                                                               
-Make a definition that will replace the last word in the search order
-by its wordlist.
 
 VOCABULARY   ---                                                               
 Make a definition that will replace the last word in the search order
@@ -1112,11 +1166,19 @@ WRITE-LINE   c-addr u fid --- ior
 Write the string at addr c-addr with length u to the file described by
 fid. Append the end of line character to it.
 
+X>   --- x                                                                     
+Pop the top of the ADL extended stack and place it on the stack.
+
 XC!   c d-addr ---                                                             
 Store a byte value into an extended address.    
 
 XC@   d-addr --- c                                                             
 Read a byte value from an extended address.
+
+XEXECUTE   d ---                                                               
+Execute a call into 24 bit code. This must return using RET .LIL to exit ADL.
+The registers are as expected BC is the top of stack as is usual.
+DE as the IP, HL is a scratch register (all 16 bit) and IX as RP.
 
 XOR   x1 x2 ---x3                                                              
 Bitwise exclusive or of the top two cells on the stack.
@@ -1134,7 +1196,7 @@ Compile the first character of "ccc" as a literal.
 Produce a flag indicating whether the next word is defined.	
 
 [IF]   f ---                                                                   
-If the flag is false, conditionally skip till the next [ELSE] or [ENDIF]
+If the flag is false, conditionally skip till the next [ELSE] or [THEN]
 
 [THEN]   ---                                                                   
 Terminate [IF] [THEN] does nothing.

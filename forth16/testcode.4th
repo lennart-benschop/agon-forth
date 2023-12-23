@@ -1,5 +1,7 @@
 \ Example code definitions.
 
+REQUIRE asmz80.4th
+
 CODE 3* ( n1 --- n2)
 \G Multiply a number by 3
   LD L, C

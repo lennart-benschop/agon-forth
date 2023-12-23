@@ -1,0 +1,2 @@
+CREATE FULL-SRC
+INCLUDE /forth16/extend80.4th

@@ -843,6 +843,17 @@ CODE RSHIFT ( x1 u --- x2)
     NEXT
 END-CODE
 
+CODE SPLIT ( u16 --- b1 b2)
+\G Split 16-bit value into bytes little end is b2.
+    LD HL, $0
+    LD A, E
+    LD L, D
+    LD DE, $0
+    LD E, A
+    PUSH HL
+    NEXT
+END-CODE
+
 CODE DROP ( x --- )
 \G Discard the top item on the stack.        
     POP DE

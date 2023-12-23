@@ -151,6 +151,8 @@ EDBA INS0 INDR EDBB INS0 OTDR
     CREATE ,
   DOES> >R A; R> @ OPCODE ! ['] PUSHPOP-HANDLER IHANDLER ! ;
 C1 PUSHPOP POP C5 PUSHPOP PUSH
+\ Added MLT from asmez80.4th in forth24
+ED4C PUSHPOP MLT
 
 \ Rotate and shift instructions
 : ROT-SHIFT-HANDLER
@@ -260,6 +262,9 @@ CDC4 2  JMPINST CALL
 		06 OF \ LD A, I or LD A, R
 		    SRCREG @ FF AND 8 * ED57 + OPCODE !
 		ENDOF
+		08 OF \ LD A, MB
+		    ED6E OPCODE !
+		ENDOF
 	    ENDCASE
 	ENDOF
 	02 OF \ Destination is 16-bit register pair.
@@ -300,6 +305,9 @@ CDC4 2  JMPINST CALL
 	06 OF \ Destination is I or R register
 	    DSTREG @ FF AND 8 * ED47 + OPCODE !
 	ENDOF
+	08 OF \ Destination is MB register
+	    ED6D OPCODE ! \ LD MB. A
+        ENDOF
     ENDCASE 
 ;
 : LD
@@ -385,6 +393,7 @@ CDC4 2  JMPINST CALL
 \ $06xx I and R registers.
 0600 DST-REG I,  0600 SRC-REG I
 0601 DST-REG R,  0601 SRC-REG R
+0801 DST-REG MB, 0801 SRC-REG MB
 \ $04xx direct addressing 
 : (), 0400 DSTREG ! 2 ?OPERAND ! ; \ Direct addressing LD addr (), HL
 : ()  0400 SRCREG ! 2 ?OPERAND ! ; \ Direct addressing LD A, addr ()
@@ -445,7 +454,10 @@ CDC4 2  JMPINST CALL
     NEXTHL
 ;
 
-: .LIL 005B C_ ;
+: .LIL 005B C_ ; \ Long mode
+: .SIS 0040 C_ ; \ Short mode
+: .LIS 0049 C_ ; \ Long actions/Short data
+: .SIL 0052 C_ ; \ Short actions/Long data
 
 : ENDASM \ End assembly.
   A; PREVIOUS ;

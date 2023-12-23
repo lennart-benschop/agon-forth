@@ -19,7 +19,18 @@ card.
 ## forthlib
 
 The forthlib directory contains library files, intended to be loaded via
-the require command (so far only available in forth24).
+the require command.
+* see.4th (a simple decompiler)
+* asmz80.4th (the 16-bit Z80 assembler, the 24-bit FORTH always contains
+  the eZ80 assemlber as a standard).
+* misc.4th (miscellaneous words)
+* files.4th (file extensions, only for forth16. DBLOAD and DBSAVE to load
+  and save files into the entire RAM. Forth24 can use BLOAD and BSAVE with
+  24-bit addresses. Also contains READ-FILE, WRITE-FILE,
+  REPOSITION-FILE. Forth24 has these standard).
+* agon.4th (Graphics, sound, joystick commands for Agon).
+* vload.4th (command to load VDU sequences like bitmaps or sound samples from
+  files).
 
 ## examples
 

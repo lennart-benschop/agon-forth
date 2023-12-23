@@ -3,6 +3,8 @@
 \ copyleft (c) 1994-2014 by the sbc09 team, see AUTHORS for more details.
 \ Most Z80 primitives: ; Copyright (c) 1994,1995 Bradford J. Rodriguez
 \ copyleft (c) 2022 L.C. Benschop for Cerberus 2080.
+\ copyleft (c) 2023 L.C. Benschop for Agon.
+\ copyleft (c) 2023 S. Jackson for Agon.
 \ license: GNU General Public License version 3, see LICENSE for more details.
 \ It is extensively commented as it must serve as an introduction to the
 \ construction of Forth compilers.
@@ -78,9 +80,9 @@ ENDASM
 \ Paramter addres will be new IP
 LABEL DOCOL
   DEC IX
-  LD 0 (IX+), D 
+  LD $0 (IX+), D 
   DEC IX
-  LD 0 (IX+), E   \ Push IP to return stack
+  LD $0 (IX+), E   \ Push IP to return stack
   POP HL          \ Get paramter field addres, new IP  
   NEXTHL         
 ENDASM
@@ -90,9 +92,9 @@ ENDASM
 \ starts with a CALL to DODOES.
 LABEL DODOES
   DEC IX
-  LD 0 (IX+), D 
+  LD $0 (IX+), D 
   DEC IX
-  LD 0 (IX+), E  \ Push IP on return stack
+  LD $0 (IX+), E  \ Push IP on return stack
   POP HL         \ New instruction ptr, thread after DOES>.
   POP DE         \ PFA of defined word, result of CALL to CALL DODOES        
   PUSH BC        \ Push old 
@@ -111,6 +113,7 @@ CODE LIT ( --- n)
     INC HL
     LD B, (HL)     \ Load TOS from next cell in thread.
     INC HL
+LABEL SNEXTHL \ For slower but compact JP SNEXTHL
     NEXTHL
 END-CODE
     
@@ -122,6 +125,7 @@ LABEL BR
     LD E, (HL)
     INC HL
     LD D, (HL)
+LABEL SNEXT \ For slower but compact JP SNEXT
     NEXT
 END-CODE
 
@@ -146,9 +150,9 @@ END-CODE
 
 CODE EXIT ( --- )
 \G Return from colon definition.    
-    LD L, 0 (IX+)
+    LD L, $0 (IX+)
     INC IX
-    LD H, 0 (IX+)  \ Pop IP from Return stack
+    LD H, $0 (IX+)  \ Pop IP from Return stack
     INC IX
     NEXTHL 
 END-CODE
@@ -156,9 +160,9 @@ END-CODE
 CODE UNNEST ( --- )
 \G Synonym for EXIT, used by compiler, so decompiler can use this as end of
 \G colon definition.   
-    LD L, 0 (IX+)
+    LD L, $0 (IX+)
     INC IX
-    LD H, 0 (IX+)
+    LD H, $0 (IX+)
     INC IX
     NEXTHL 
 END-CODE
@@ -177,13 +181,13 @@ LABEL DO1
     AND A
     SBC HL, BC \ HL = start - (limit xor 0x8000)
     DEC IX
-    LD 0 (IX+), B
+    LD $0 (IX+), B
     DEC IX
-    LD 0 (IX+), C  \ Push Limit ^ 0x8000  on return stack
+    LD $0 (IX+), C  \ Push Limit ^ 0x8000  on return stack
     DEC IX
-    LD 0 (IX+), H
+    LD $0 (IX+), H
     DEC IX
-    LD 0 (IX+), L  \ Push modified start value on return stack
+    LD $0 (IX+), L  \ Push modified start value on return stack
     \ terminate when crossing limit-1, limit in any directions.
     \ End-of-loop condition is indicated by overflow flag when adding
     \ modified loop variable. 
@@ -223,16 +227,16 @@ CODE (LOOP) ( --- )
     PUSH BC
     LD BC, 1
     LABEL LOOP1
-    LD L, 0 (IX+)
-    LD H, 1 (IX+)    \ Get loop variable
+    LD L, $0 (IX+)
+    LD H, $1 (IX+)    \ Get loop variable
     AND A
     ADC HL, BC       \ Add increment to loop variable. Need to use ADC not ADD
                      \ because ADD HL,reg does not change parity/overflow
     POP BC           \ Restore TOS
     JP PE, ENDLOOP   \ End-of-loop when overflow flag is set.
                      \ On Z80 this is even parity.
-    LD 0 (IX+), L
-    LD 1 (IX+), H    \ Store updated loop variable back
+    LD $0 (IX+), L
+    LD $1 (IX+), H    \ Store updated loop variable back
     EX DE, HL
     LD E, (HL)
     INC HL
@@ -253,7 +257,7 @@ CODE (LEAVE) ( ---)
     LD E, (HL)
     INC HL
     LD D, (HL)      \ Load IP from cell after LEAVE, branch out.
-    NEXT
+    JP SNEXT
 END-CODE
 
 \ PART 3: Code definitions used in programs.
@@ -263,10 +267,10 @@ CODE I ( --- n)
 \ As the loop variable is stored in modifed form to facilitate end-of-loop
 \ testing, we need to reverse this when obtaining I.    
     PUSH BC           \ Save old TOS
-    LD L, 0 (IX+)
-    LD H, 1 (IX+)     \ Load (modified) loop variable
-    LD C, 2 (IX+)
-    LD B, 3 (IX+)
+    LD L, $0 (IX+)
+    LD H, $1 (IX+)     \ Load (modified) loop variable
+    LD C, $2 (IX+)
+    LD B, $3 (IX+)
     ADD HL, BC        \ Add limit^xor 0x8000 to obtain original loop variable.
     LD C, L            
     LD B, H           \ Put in TOS
@@ -280,7 +284,7 @@ CODE I' ( ---n)
     LD A, 3 (IX+)
     XOR $80          \ Undo the XOR 0x8000  
     LD B, A
-    NEXT
+    JP SNEXT
 END-CODE
 
 CODE J ( ---n)
@@ -301,23 +305,130 @@ CODE UNLOOP ( --- )
     EX DE, HL
     LD DE, 4
     ADD IX, DE    \ Remove 2 cells from return stack.
-    NEXTHL
+    JP SNEXTHL
+END-CODE
+
+\ Push BC as 2 bytes onto the SPL stack.
+LABEL BCX
+    PUSH .LIL BC
+    DEC .LIL SP
+    POP .LIL BC
+    INC .LIL SP
+    PUSH .LIL BC
+    INC .LIL SP
+    RET
+ENDASM
+
+\ Pop BC as 2 bytes from the SPL stack.
+LABEL XBC
+   DEC .LIL SP
+   POP .LIL BC
+   DEC .LIL SP
+   PUSH .LIL BC
+   INC .LIL SP
+   POP .LIL BC
+   RET
+ENDASM
+
+CODE >X ( x ---)
+\G Push x on the ADL extended stack.
+    CALL BCX
+    POP BC
+    JP SNEXT
+END-CODE
+
+\ Push double number on Forth stack as 3-byte value onto the SPL stack.
+LABEL DXX
+    LD B, C
+    CALL BCX
+    INC .LIL SP
+    POP HL
+    POP BC
+    PUSH HL
+    CALL BCX
+    POP HL
+    POP BC
+    PUSH HL
+    RET
+ENDASM
+
+CODE D>X ( d ---)
+\G Push d on the ADL extended stack as 24 bit.
+	CALL DXX
+	JP SNEXT    
+END-CODE
+
+CODE X> ( --- x)
+\G Pop the top of the ADL extended stack and place it on the stack.
+    PUSH BC
+    CALL XBC
+    JP SNEXT
+END-CODE
+
+CODE DX> ( --- d)
+\G Pop the top 24 bit of the ADL extended stack and place it on the stack.
+    PUSH BC
+    CALL XBC
+    PUSH BC
+    DEC .LIL SP
+    CALL XBC
+    LD C, B
+    LD B, $0
+    JP SNEXT
+END-CODE
+
+LABEL XJPHL
+    POP .LIL HL \ Call address
+    POP BC
+    CALL BCX
+    LD B, 2 \ Mark as z80 mode return
+    CALL BCX
+    INC .LIL SP
+    POP BC \ Top of stack
+    JP .LIS (HL) \ 24 bit spring board indirect HL.
+ENDASM
+
+CODE XEXECUTE ( d ---)
+\G Execute a call into 24 bit code. This must return using RET .LIL to exit ADL.
+\G The registers are as expected BC is the top of stack as is usual.
+\G DE as the IP, HL is a scratch register (all 16 bit) and IX as RP.
+    CALL DXX
+    PUSH BC
+    CALL XJPHL \ Enter 24 bit code.
+    JP SNEXT
+END-CODE
+
+CODE 0 ( --- 0)
+\G Stack a literal zero.
+    PUSH BC
+    LD B, $0
+    LD C, B
+    NEXT
+END-CODE
+
+CODE 0. ( --- 0 0)
+\G Stack a double zero.
+    PUSH BC
+    LD B, $0
+    LD C, B
+    PUSH BC
+    NEXT
 END-CODE
 
 CODE R@ ( --- x)
 \G x is a copy of the top of the return stack.
     PUSH BC
-    LD C, 0 (IX+)
-    LD B, 1 (IX+)
+    LD C, $0 (IX+)
+    LD B, $1 (IX+)
     NEXT
 END-CODE
 
 CODE >R ( x ---)
 \G Push x on the return stack. 
     DEC IX
-    LD 0 (IX+), B
+    LD $0 (IX+), B
     DEC IX
-    LD 0 (IX+), C
+    LD $0 (IX+), C
     POP BC
     NEXT
 END-CODE
@@ -325,9 +436,9 @@ END-CODE
 CODE R> ( --- x)
 \G Pop the top of the return stack and place it on the stack.
     PUSH BC
-    LD C, 0 (IX+)
+    LD C, $0 (IX+)
     INC IX
-    LD B, 0 (IX+)
+    LD B, $0 (IX+)
     INC IX
     NEXT
 END-CODE
@@ -337,7 +448,7 @@ CODE RP@ ( --- a-addr)
     PUSH BC
     PUSH IX
     POP BC
-    NEXT
+    JP SNEXT
 END-CODE
 
 CODE RP! ( a-addr --- )
@@ -345,18 +456,18 @@ CODE RP! ( a-addr --- )
     PUSH BC
     POP IX
     POP BC
-    NEXT
+    JP SNEXT
 END-CODE
 
 CODE SP@ ( --- a-addr)
 \G Return the address of the stack pointer (before SP@ was executed).
 \G Note: TOS is in a register, hence stack pointer points to next cell.
-    LD HL, 0
+    LD HL, $0
     ADD HL, SP
     PUSH BC
     LD C, L
     LD B, H
-    NEXT
+   JP SNEXT
 END-CODE
 
 CODE SP! ( a-addr ---)
@@ -364,32 +475,51 @@ CODE SP! ( a-addr ---)
     LD L, C
     LD H, B
     LD SP, HL
-    NEXT
+    JP SNEXT
 END-CODE
 
 CODE UM* ( u1 u2 --- ud)
 \G Multiply two unsigned numbers, giving double result. 
-    PUSH BC    \ store TOS
-    EXX        \ Use shadow register set.
-    POP BC     \ Get TOS back (operand 1)
+\G Uses MLT even though slightly longer
+    PUSH .LIL DE \ Save IP
     POP DE     \ Get other operand.
-    LD HL, 0   \ Initialize MSW of result, DE will be replaced by LSW
-    LD A, $11  \ 17 iteration
-    OR A       \ Clear carry
-    BEGIN
-	RR H   \ Rotate HL:DE 1 bit right (LSB of DE gets to carry).
-	RR L
-	RR D
-	RR E
-	U< IF
-	    ADD HL, BC \ If carry, add BC operand.
-	THEN   \ Any carry from this add will be shifted back in.
-	DEC A  
-    0= UNTIL
-    PUSH DE    \ Push result
-    PUSH HL
-    EXX        \ Back to normal registers
+    LD H, C
+    LD L, E
+    MLT HL
+    PUSH HL    \ Save lower
+    LD H, B
+    LD L, D
+    MLT HL
+    PUSH HL    \ Save upper
+    LD H, C
+    LD L, D
+    MLT HL
+    PUSH HL    \ Save mid 1
+    LD H, B
+    LD L, E
+    MLT HL     \ Have mid 2
     POP BC
+    ADD HL, BC \ Have mid and carry
+    POP BC     \ Have high 
+    LD A, B
+    ADC $0      \ Add carry to high high
+    LD B, A
+    LD A, C
+    ADD H
+    LD C, A
+    LD A, B
+    ADC $0      \ Add carry to high high
+    LD B, A    \ BC high complete almost
+    POP DE     \ Have low
+    LD A, L
+    ADD D
+    LD D, A    \ Have low finished
+    PUSH DE
+    LD HL, $0
+    ADC HL, BC \ Have high, add carry in.
+    PUSH HL
+    POP BC
+    POP .LIL DE \ Restore IP
     NEXT
 END-CODE
 
@@ -455,7 +585,7 @@ END-CODE
 
 CODE NEGATE ( n1 --- -n1)
 \G Negate top number on the stack.    
-    LD HL, 0
+    LD HL, $0
     AND A
     SBC HL, BC
     LD C, L
@@ -614,6 +744,15 @@ CODE RSHIFT ( x1 u --- x2)
     NEXT
 END-CODE
 
+CODE SPLIT ( u16 --- b1 b2)
+\G Split cell into bytes little end is b2.
+    LD H, $0
+    LD L, B
+    LD B, $0
+    PUSH HL
+    JP SNEXT
+END-CODE
+
 CODE DROP ( x --- )
 \G Discard the top item on the stack.        
     POP BC
@@ -763,7 +902,7 @@ CODE C@ ( c-addr --- c)
 \G Fetch character c at c-addr.
     LD A, (BC)
     LD C, A
-    LD B, 0
+    LD B, $0
     NEXT
 END-CODE
 
@@ -849,8 +988,8 @@ END-CODE
 CODE P@ ( p-addr --- c)
 \G Read a byte from an I/O port
     IN C, (C)
-    LD B, 0
-    NEXT
+    LD B, $0
+    JP SNEXT
 END-CODE
 
 CODE P! ( c p-addr ---)
@@ -858,7 +997,7 @@ CODE P! ( c p-addr ---)
     POP HL
     OUT (C), L
     POP BC
-    NEXT
+    JP SNEXT
 END-CODE    
 
 CODE SYSVARS ( --- d-addr)
@@ -868,14 +1007,14 @@ CODE SYSVARS ( --- d-addr)
     LD A, $8
     RST $8
     PUSH .LIL IX         \ Push address onto SPL
-    LD .LIL HL, 2 A; 0 C, \ extra 0 byte to extend immediate value for LIL
+    LD .LIL HL, 2 A; $0 C, \ extra 0 byte to extend immediate value for LIL
     ADD .LIL HL, SP
     LD .LIL C, (HL) \ Pick most significant byte of psuhed value
-    LD B, 0
+    LD B, $0
     POP .LIL HL  \ Pull the value into HL
     POP IX
     PUSH HL \ Put LSB address onto SPS
-    NEXT
+    JP SNEXT
 END-CODE    
 
 CODE XC@ ( d-addr --- c)
@@ -883,14 +1022,14 @@ CODE XC@ ( d-addr --- c)
     POP HL
     PUSH IX
     PUSH .LIL HL
-    LD .LIL IX, 0 A; 0 C,
+    LD .LIL IX, $0 A; $0 C,
     ADD .LIL IX, SP
-    LD .LIL 2 (IX+), C  \ Add MSB to value on stack
+    LD .LIL $2 (IX+), C  \ Add MSB to value on stack
     POP .LIL HL  \ Extended address now in UHL
     POP IX
     LD .LIL C, (HL)
-    LD B, 0
-    NEXT
+    LD B, $0
+    JP SNEXT
 END-CODE
 
 CODE XC! ( c d-addr ---)
@@ -898,22 +1037,22 @@ CODE XC! ( c d-addr ---)
     POP HL
     PUSH IX
     PUSH .LIL HL
-    LD .LIL IX, 0 A; 0 C,
+    LD .LIL IX, $0 A; $0 C,
     ADD .LIL IX, SP
-    LD .LIL 2 (IX+), C  \ Add MSB to value on stack
+    LD .LIL $2 (IX+), C  \ Add MSB to value on stack
     POP .LIL HL  \ Extended address now in UHL
     POP IX
     POP BC
     LD .LIL (HL), C
     POP BC
-    NEXT
+    JP SNEXT
 END-CODE    
 
 CODE 0= ( x --- f)
 \G f is true if and only if x is 0.
     LD A, B
     OR C
-    SUB 1     \ Get a carry if and only if BC=0
+    SUB $1     \ Get a carry if and only if BC=0
     SBC A, A  \ Get 0 if no carry, 0FFh if carry.
     LD C, A
     LD B, A   \ Flag value to TOS
@@ -944,7 +1083,7 @@ CODE < ( n1 n2 --- f)
     POP HL
     XOR A
     SBC HL, BC \ Subtract n1-n2
-    LD BC, 0  \ False result to TOS
+    LD BC, $0  \ False result to TOS
     JP PE, LESS_OVF
     JP M, YES \ No overflow, less if negative
     NEXT
@@ -966,7 +1105,7 @@ CODE = ( x1 x2 --- f)
     POP HL
     AND A
     SBC HL, BC
-    LD BC, 0
+    LD BC, $0
     JR Z, YES
     NEXT
 END-CODE
@@ -982,6 +1121,42 @@ CODE INVERT ( x1 --- x2)
     NEXT
 END-CODE    
     
+CODE D< ( d1 d2 --- f)
+\G Compare d1 and d2, flag = true if d1<d2
+    EXX
+    POP HL
+    POP DE
+    POP BC
+    AND A
+    SBC HL, BC
+    PUSH DE
+    EXX
+    POP HL
+    SBC HL, BC
+    JP C, YES
+    LD BC, $0
+    JP PE, LESS_OVF
+    JP M, YES \ No overflow, less if negative    
+    NEXT
+END-CODE
+
+CODE DU< ( ud1 ud2 --- f)
+\G Compare d1 and d2, flag = true if ud1<ud2
+    EXX
+    POP HL
+    POP DE
+    POP BC
+    AND A
+    SBC HL, BC
+    PUSH DE
+    EXX
+    POP HL
+    SBC HL, BC
+    JP C, YES
+    LD BC, $0
+    NEXT
+END-CODE
+
 CODE CMOVE ( c-addr1 c-addr2 u ---)
 \G Copy u bytes starting at c-addr1 to c-addr2, proceeding in ascending
 \G order.
@@ -1021,7 +1196,7 @@ CODE CMOVE> ( c-addr1 c-addr2 u ---)
     THEN
     EXX
     POP BC
-    NEXT
+    JP SNEXT
 END-CODE
 
 CODE FILL ( c-addr u c ---)
@@ -1049,6 +1224,55 @@ CODE FILL ( c-addr u c ---)
     EXX
     POP BC
     NEXT
+END-CODE
+
+CODE COMPARE ( addr1 u1 addr2 u2 --- diff )
+\G Compare two strings. diff is negative if addr1 u1 is smaller, 0 if it
+\G is equal and positive if it is greater than addr2 u2.
+    EXX
+    POP HL   \ Get address of string 2
+    EXX
+    POP HL   \ Get length of string 1 (length string 2 in BC)
+    EXX
+    POP DE   \ Get address of string 1
+    EXX
+    AND A
+    SBC HL, BC
+    PUSH HL  \ Push length1 - length2
+    U< IF
+      ADD HL, BC 
+    ELSE
+      LD L, C
+      LD H, B 	
+    THEN	
+    \ Minimum in HL.
+    LD A, L
+    OR H
+    0<> IF
+	BEGIN
+	    EXX
+	    LD A, (DE)
+	    SUB (HL)
+	    INC DE
+	    INC HL
+	    0<> IF
+		EXX
+		LD BC, 1
+		U< IF
+		    LD BC, -1
+		THEN
+		POP HL
+		JP SNEXT
+	    THEN
+	    EXX
+	    DEC HL
+	    LD A, L
+	    OR H
+	0= UNTIL  
+    THEN
+    \ Strings were equal, return length difference.
+    POP BC
+    JP SNEXT
 END-CODE
 
 CODE (FIND) ( c-addr u nfa  --- cfa/word f )
@@ -1094,7 +1318,7 @@ CODE (FIND) ( c-addr u nfa  --- cfa/word f )
 		PUSH BC
 		EXX
 		POP BC
-		NEXT
+		JP SNEXT
 	    THEN
 	THEN
 	POP HL
@@ -1108,7 +1332,7 @@ CODE (FIND) ( c-addr u nfa  --- cfa/word f )
     0= UNTIL
     EXX             \ Not found, zero value already on stack.
     POP BC
-    NEXT
+    JP SNEXT
 END-CODE
 
 CODE SCAN ( c-addr1 u11 c --- c-addr2 u2 )
@@ -1170,7 +1394,7 @@ END-CODE
 
 CODE NOOP ( --- )
 \G No operation    
-    NEXT
+    JP SNEXT
 END-CODE    
 
 END-CROSS

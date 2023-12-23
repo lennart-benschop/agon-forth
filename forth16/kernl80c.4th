@@ -552,8 +552,8 @@ VARIABLE NESTING
 : F-STARTUP
 \G This is the first colon definition called after a (cold) startup.    
     AT-STARTUP @ 0= IF
-	." Agon 16-bit Z80 Forth v0.09, 2023-10-22 GPLv3" CR
-	." Copyright (C) 2023 L.C. Benschop, Brad Rodriguez" CR
+	." Agon 16-bit Z80 Forth v0.20, 2023-12-23 GPLv3" CR
+	." Copyright (C) 2023 L.C. Benschop, Brad Rodriguez, S. Jackson" CR
     THEN
     0 HERE C!
     0 SYSVARS 5 0 D+ XC!	
@@ -561,10 +561,19 @@ VARIABLE NESTING
 
 CODE COLD ( --- )
     \G The first word that is called at the start of Forth.
-    LD SP, $FF00
-    LD S0ADDR (), SP
-    LD IX, $FFF0
-    LD R0ADDR (), IX
+    LD A, MB
+    CP $B \ If we run as a MOS command, only have up to $8000
+    0= IF
+	LD SP, $7F00 
+	LD S0ADDR (), SP
+	LD IX, $7FF0
+	LD R0ADDR (), IX
+    ELSE
+	LD SP, $FF00
+	LD S0ADDR (), SP
+	LD IX, $FFF0
+	LD R0ADDR (), IX
+    THEN
     LD DE, $FFFF
     LD COLDSTARTADDR (), DE
     LD DE, CURFILEADDR

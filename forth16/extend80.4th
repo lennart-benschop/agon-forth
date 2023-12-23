@@ -4,6 +4,8 @@
 \ copyleft (c) 2022 L.C. Benschop for Cerberus 2080.
 \ license: GNU General Public License version 3, see LICENSE for more details.
 
+CAPS ON
+
 : \G POSTPONE \ ; IMMEDIATE
 \G comment till end of line for inclusion in glossary.
 
@@ -12,23 +14,6 @@
 : ?TERMINAL ( ---f)
 \G Test whether the ESC key is pressed, return a flag.     
     KEY? IF KEY 27 = IF -1 ELSE KEY DROP 0 THEN  ELSE 0 THEN ;
-
-: COMPARE ( addr1 u1 addr2 u2 --- diff )
-\G Compare two strings. diff is negative if addr1 u1 is smaller, 0 if it
-\G is equal and positive if it is greater than addr2 u2.
-  ROT 2DUP - >R
-  MIN DUP IF
-   >R
-   BEGIN
-    OVER C@ OVER C@ - IF
-     SWAP C@ SWAP C@ - R> DROP R> DROP EXIT
-    THEN
-    1+ SWAP 1+ SWAP
-    R> 1- DUP >R 0=
-   UNTIL R>
-  THEN DROP
-  DROP DROP R> NEGATE
-;
 
 : ERASE ( c-addr u )
 \G Fill memory region of u bytes starting at c-addr with zero.    
@@ -136,64 +121,41 @@ CONSTANT ROOT-WORDLIST ( --- wid )
   DOES> >R                      \ Replace last item in the search order.
   GET-ORDER SWAP DROP R> SWAP SET-ORDER ;
 
+VARIABLE SOURCE-LINK
+\G Variable that contains a link to all files included via RQUIRE
 
-: VOCABULARY ( --- )
-\G Make a definition that will replace the last word in the search order
-\G by its wordlist.
-  CREATE WORDLIST DROP          \ Make a new wordlist and store it in def.
-  DOES> >R                      \ Replace last item in the search order.
-  GET-ORDER SWAP DROP R> SWAP SET-ORDER ;
+: FIND-SOURCEFILE ( c-addr u --- f)
+    SOURCE-LINK @ >R
+    BEGIN
+         2DUP R@ CELL+ COUNT COMPARE R@ 0<> AND
+    WHILE
+	    R> @ >R
+    REPEAT
+    2DROP R> 0<> ;
 
-
-: (FORGET) ( xt ---)
-\G Forget the word indicated by xt and everything defined after it.    
-    >NAME CELL- DUP FENCE @ U< -6 ?THROW \ Check we are not below fence.
-    >R \ Store new dictionary pointer to return stack.
-    VOC-LINK @   
-    BEGIN  \ Traverse all worlists
-	DUP R@ U> IF
-	    DUP @ VOC-LINK ! \ Wordlist entirely above new DP, remove it.
-	ELSE
-	    R@
-	    OVER CELL+ @ 0 DO
-	   	OVER I 2+ CELLS + CELL+
-		BEGIN
-	   	   CELL- @ DUP 2 PICK U<
-		UNTIL
-		2 PICK I 2+ CELLS + !
-	    LOOP
-	    DROP
-	THEN
-	@
-	DUP 0=
-    UNTIL DROP
-    R> DP ! \ Adjust dictionary pointer.
-;
-
-: FORGET ( "ccc" ---)
-\G Remove word "ccc" from the dictionary, and anything defined later.
-    32 WORD UPPERCASE? FIND 0=
+: REQUIRED ( c-addr u ---)
+\G Check that the file with the name c-addr u is already loaded and
+\G load it only if it is not already loaded.    
+    S" /forthlib/" OSSTRING >ASCIIZ \ Put path prefix into string buffer
+    OSSTRING ASCIIZ> + >ASCIIZ \ Append file name.
+    OSSTRING ASCIIZ> FIND-SOURCEFILE 0=
     IF
-	DROP \ Exit silently if word not found.
-    ELSE
-	(FORGET)
+	HERE SOURCE-LINK @ , SOURCE-LINK !
+	OSSTRING ASCIIZ> 2DUP HERE PLACE DUP 1+ ALLOT
+	INCLUDED
     THEN
 ;
 
-: MARKER ( "ccc" --)
-\G Create a word that when executeed forgets itself and everything defined
-\G after it.
-   CREATE DOES> 3 - (FORGET)    
-;
+: REQUIRE  ( "ccc" --- )
+\G Parse file name from source file and load that if not already loaded.    
+  BL WORD COUNT REQUIRED ;  
 
-: ENVIRONMENT? ( c-addr u --- false | val true)
-\G Return an environmental query of the string c-addr u    
-    2DROP 0 ;
 
-\ Part 2A: Conditional compilation
+
+\ Part 1A: Conditional compilation
 
 : [IF] ( f ---)
-\G If the flag is false, conditionally skip till the next [ELSE] or [ENDIF]
+\G If the flag is false, conditionally skip till the next [ELSE] or [THEN]
     0= IF
 	BEGIN 
 	    BEGIN
@@ -229,8 +191,69 @@ CONSTANT ROOT-WORDLIST ( --- wid )
 \G Produce a flag indicating whether the next word is defined.	
     BL WORD UPPERCASE? FIND SWAP DROP 0<> ; IMMEDIATE
 
+[DEFINED] FULL-SRC [IF]
+: (FORGET) ( xt ---)
+\G Forget the word indicated by xt and everything defined after it.    
+    >NAME CELL- DUP FENCE @ U< -6 ?THROW \ Check we are not below fence.
+    >R \ Store new dictionary pointer to return stack.
+    VOC-LINK @   
+    BEGIN  \ Traverse all worlists
+	DUP R@ U> IF
+	    DUP @ VOC-LINK ! \ Wordlist entirely above new DP, remove it.
+	ELSE
+	    R@
+	    OVER CELL+ @ 0 DO
+	   	OVER I 2+ CELLS + CELL+
+		BEGIN
+	   	   CELL- @ DUP 2 PICK U<
+		UNTIL
+		2 PICK I 2+ CELLS + !
+	    LOOP
+	    DROP
+	THEN
+	@
+	DUP 0=
+    UNTIL DROP
+    SOURCE-LINK 
+    BEGIN
+	@
+	R@ OVER U< 0=
+    UNTIL
+    SOURCE-LINK ! \ Fix the list of loaded source files.
+    R> DP ! \ Adjust dictionary pointer.
+;
+
+: FORGET ( "ccc" ---)
+\G Remove word "ccc" from the dictionary, and anything defined later.
+    32 WORD UPPERCASE? FIND 0=
+    IF
+	DROP \ Exit silently if word not found.
+    ELSE
+	(FORGET)
+    THEN
+;
+
+: MARKER ( "ccc" --)
+\G Create a word that when executeed forgets itself and everything defined
+\G after it.
+   CREATE DOES> 3 - (FORGET)    
+;
+[ELSE]
+: MARKER ( "ccc" --- )
+    BL WORD DROP 
+;
+: FORGET ( "ccc" --- )
+    BL WORD DROP 
+;
+[THEN]    
+: ENVIRONMENT? ( c-addr u --- false | val true)
+\G Return an environmental query of the string c-addr u    
+    2DROP 0 ;
+
+
 \ PART 3: SOME UTILITIES, DUMP .S WORDS
 
+[DEFINED] FULL-SRC [IF]
 : DL ( addr1 --- addr2 )
 \G hex/ascii dump in one line of 16 bytes at addr1 addr2 is addr1+16
   BASE @ >R 16 BASE ! CR
@@ -284,7 +307,7 @@ CONSTANT ROOT-WORDLIST ( --- wid )
     REPEAT
     DROP R> 0 DO DROP LOOP  \ Drop the thread pointers.
 ;
-
+[THEN]
 
 ROOT-WORDLIST CURRENT !
 : FORTH FORTH ;
@@ -292,7 +315,9 @@ ROOT-WORDLIST CURRENT !
 : ONLY ONLY ;
 : PREVIOUS PREVIOUS ;
 : DEFINITIONS DEFINITIONS ;
+[DEFINED] FULL-SRC [IF]
 : WORDS WORDS ;
+[THEN]    
 DEFINITIONS
 \ Fill the ROOT wordlist.
 
@@ -397,12 +422,13 @@ DEFINITIONS
 
 : DELETE ( "ccc"  --)
 \G Delete the specified file.    
-  BL WORD COUNT DELETE-FILE -38 ?THROW ;
+  BL WORD COUNT DELETE-FILE DROP ;
 
 : CD ( "ccc"  --)
 \G Go to the specified directory.    
   BL WORD COUNT OSSTRING >ASCIIZ OSSTRING 0 0 3 OSCALL -40 ?THROW ;
 
+[DEFINED] FULL-SRC [IF]
 : SYSTEM ( c-addr u ---)
 \G Execute the specified system command.    
   CR OSSTRING >ASCIIZ OSSTRING 0 0 16 OSCALL -39 ?THROW ;  
@@ -425,7 +451,12 @@ DEFINITIONS
 \G Invoke the editor on the current file (selected with OPEN)   
     CURFILENAME C@ 0= -38 ?THROW
     CURFILENAME ASCIIZ> 1 EDIT-FILE ;
-    
+
+
+REQUIRE asmz80.4th
+REQUIRE see.4th
+[THEN]
+
 : SAVE-SYSTEM ( "ccc"  --- )
 \G Save the current FORTH system to the specifed file.    
     0 CURFILENAME C! \ Do not want stray current file here.
@@ -456,13 +487,16 @@ DEFINITIONS
       DUP 0 SYSVARS@ <> \ Wait until system time changes (50 times per second)
      UNTIL DROP LOOP  ;
 
-CAPS ON
 
-\ S" asmz80.4th" INCLUDED
-     
 HERE FENCE !
 
-DELETE forth.bin
-CR .( Saving system as forth.bin ) CR
-SAVE-SYSTEM forth.bin
+[DEFINED] FULL-SRC [IF]
+    DELETE forth.bin
+    CR .( Saving system as forth.bin ) CR
+    SAVE-SYSTEM forth.bin
+[ELSE]
+    DELETE cf.bin
+    CR .( Saving system as cf.bin ) CR
+    SAVE-SYSTEM cf.bin
+[THEN]
 BYE

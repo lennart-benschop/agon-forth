@@ -35,9 +35,11 @@ The `forth24` subdirectory contains the following files:
 
 ### Prerequisites
 
-You need Agon MOS of at least version 1.03. 
-You need a text editor to edit FORTH source files on Agon. The following repository contains the Nano.bin file that you can install on the
-micro-SD card in the MOS subdirectory.
+You need Agon MOS of at least version 1.03. Some of the extensions and
+examples require MOS and VDP of version 1.04 or 2.x.  You need a text
+editor to edit FORTH source files on Agon. The following repository
+contains the Nano.bin file that you can install on the micro-SD card
+in the MOS subdirectory.
 https://github.com/lennart-benschop/agon-utilities
 
 ## Getting started
@@ -47,6 +49,10 @@ https://github.com/lennart-benschop/agon-utilities
 Make sure you have the files on the SD-card, in particular
 the forth24.bin file. When your autoexec.txt causes your machine to start up in BASIC, make sure to leave BASIC by typing the
 following command: `*BYE`
+
+It is advised to copy all of the forth16, forth24, forthlib, examples
+and examples_agon directories to your SD card and keep the files in
+these directories.
 
 At the MOS command prompt type:
 

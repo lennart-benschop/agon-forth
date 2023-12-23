@@ -6,7 +6,6 @@ CROSS-COMPILE
 
 \ PART 4: Constants and variables
 
-00 CONSTANT 0
 01 CONSTANT 1
 02 CONSTANT 2
 -1 CONSTANT -1
@@ -324,6 +323,19 @@ LABEL LAST-KEY
 01 ALLOT-T
 ENDASM
 
+\ 0. CTRL
+\ 1. SHIFT
+\ 2. ALT LEFT
+\ 3. ALT RIGHT
+\ 4. CAPS LOCK
+\ 5. NUM LOCK
+\ 6. SCROLL LOCK
+\ 7. GUI
+
+LABEL LAST-MOD
+01 ALLOT-T
+ENDASM
+
 CODE KEY ( --- c)
 \G Wait until a key is pressed and return the ASCII code
     PUSH IX
@@ -364,8 +376,41 @@ CODE BYE ( --- )
     POP .LIL BC
     POP .LIL IX
     POP .LIL IY
-    RET .LIL
+    RET .LIS
 END-CODE    
+
+CODE KEYCODE? ( n --- f)
+\G Return true if keycode of a key is held down. This allows key input without
+\G blocking.
+    PUSH IX
+    LD A, $1E
+    RST $8 \ Get key matrix bit array
+    LD A, C
+    AND $7F
+    PUSH AF
+    SRL A
+    SRL A
+    SRL A
+    LD .LIL BC, $0 A; $0 C,
+    LD C, A
+    ADD .LIL IX, BC \ Got byte -- unlikely segment boundary on table
+    LD .LIL C, $0 (IX+) \ Yes, a far pointer but likely within a 64 kB > $0B0000
+    POP AF
+    AND $07
+    0<> IF
+	LD B, A \ Bit counter
+	LD A, $01
+	BEGIN
+	    SLA A
+	B--0= UNTIL
+    ELSE
+	LD A, $01
+    THEN
+    AND C \ Set bit
+    LD C, A \ B=0 and flag
+    POP IX
+    JP SNEXT
+END-CODE
 
 CODE KEY? ( --- f)
 \G Check if a key is pressed. Return a flag    
@@ -375,6 +420,8 @@ CODE KEY? ( --- f)
     LD .LIL A, $18 (IX+)  \ Check key down.
     SUB $01  \ Carry only if A=0
     U>= IF
+	LD .LIL A, $6 (IX+) \ Check modifier.
+	LD LAST-MOD (), A
 	LD .LIL A, $5 (IX+) \ Check non-zero ASCII code.
 	LD LAST-KEY (), A
 	SUB $01
@@ -387,7 +434,17 @@ CODE KEY? ( --- f)
     LD B, A
     NEXT	
 END-CODE
--
+
+CODE KEY@ ( --- n)
+\G After KEY? returns true, return the ASCII code of the key. This allows key
+\G input without blocking. The modifiers are returned in the high byte.
+    PUSH BC
+    LD B, LAST-MOD () \ Modifiers in high byte
+    LD C, LAST-KEY ()
+    LD LAST-KEY (), $0 \ Clear key
+    NEXT
+END-CODE
+
 CODE OSCALL ( HL DE BC func --- res)
 \G Call the MOS API via RST 8 with the desired parameters in HL, DE and BC.
 \G Return the return code as in the A register.
@@ -406,41 +463,96 @@ CODE OSCALL ( HL DE BC func --- res)
     NEXT
 END-CODE
 
+CODE MB@ ( --- c )
+\G Read the value of Memory Base.
+    PUSH BC
+    LD A, MB
+    LD B, $0
+    LD C, A
+    NEXT
+END-CODE    
+
+LABEL CALLADL
+\ This function must be called from Z80 mode with normal CALL.  It
+\ switcheS to ADL mode and returns after call address (mode switch
+\ occurs in RET)
+    EX AF, AF' \ Save function code
+    LD A, MB
+    LD B, A
+    LD C, $3
+    CALL BCX \ Push MB & mode byte 03 onto SPL
+    EX AF, AF'
+    RET .LIL \ Continue as ADL. RET.L picks mode byte 03 & ret addr
+\ 23..16 from
+    \ SPL and ret addr 15..0 from SPS. I'm not making this up!
+ENDASM
+
+LABEL CALLZ80
+\ This function must be called from ADL as CALL .LIS. It switches to
+\ Z80 mode and returns aafter call address.  (mode switch occurs in
+\ CALL)
+    CALL XBC \ Get pushed mode byte and address MSB from SPL (ret addr 15..0) is on SPS
+    RET  \ Return to caller.
+ENDASM
+
+CODE DOSCALL ( dHL dDE dBC func --- DE res)
+\G Call the MOS API via RST 8 with the desired parameters in HL, DE and BC.
+\G Return the return code as in the A register. This indirectly uses RST 8
+\G not in ADL mode, calling RST .LIL 8 so leaving extra cells on the stack
+\G and BC is not the top of stack. This allows for vectoring the mos call.
+    LD A, C \ Load command byte
+    PUSH .LIL DE 
+    PUSH .LIL IX \ Save
+    \ Format BC
+    POP BC
+    CALL DXX
+    \ Format DE
+    CALL DXX
+    \ Format HL
+    CALL DXX
+    PUSH BC \ Save top of stack
+    POP .LIL HL
+    POP .LIL DE
+    CALL CALLADL  
+    \ Here we run in ADL mode.
+    POP BC
+    EX AF, AF'
+    LD A, MB  
+    PUSH AF
+    LD A, $0
+    LD MB, A \ Set MB to 0, system call expects this.
+    EX AF, AF'
+    RST .LIL $8 \ Call master MOS
+    EX AF, AF'
+    POP AF
+    LD MB, A \ Restore MB
+    EX AF, AF'
+    CALL .LIS CALLZ80
+    \ Now back in Z80 mode.
+    PUSH DE         \ Push number of bytes read.
+    POP .LIL IX     \ Restore RP
+    POP .LIL DE     \ Restore IP
+    LD C, A
+    LD B, $00  \ Result TOS
+    JP SNEXT
+END-CODE
+
 : ACCEPT ( c-addr n1 --- n2 )
 \G Read a line from the terminal to a buffer starting at c-addr with
 \G length n1. n2 is the number of characters read,
-    >R 0
-    BEGIN
-	KEY DUP 127 = 
-	IF \ Backspace/delete
-	    DROP DUP IF 1-  BL EMIT BACKSPACE BACKSPACE THEN 
-	ELSE
-	    DUP 13 = 
-	    IF \ CR
-		DROP SWAP DROP R> DROP SPACE EXIT      
-	    ELSE
-              DUP 31 > IF
-		DUP EMIT 
-		OVER R@ - IF   
-		    >R OVER OVER + R> SWAP C! 1+
-		ELSE
-		    DROP
-		THEN
-              ELSE
-                DROP
-              THEN
-	    THEN 
-	THEN 
-    0 UNTIL         
+    2DUP 0 2 PICK C!
+    0 SWAP $09 OSCALL DROP
+    OVER SWAP 0 SCAN DROP SWAP - SPACE
+    0 SYSVARS SWAP 5 + SWAP XC!
+    0 SYSVARS SWAP $18 + SWAP XC!
 ;
-
 
 \ PART 10: Source loading and parsing.
 \ A single file can be loaded in memory from $8000 to $F000.
 
 VARIABLE TIB ( --- addr) 
-\G is the standard terminal input buffer.
-80 CHARS-T ALLOT-T
+\G is the standard terminal input buffer.1
+128 CHARS-T ALLOT-T
 
 VARIABLE SPAN ( --- addr)
 \G This variable holds the number of characters read by EXPECT.
@@ -571,7 +683,7 @@ CONSTANT R/W ( --- mode)
 ;    
 
 : FGETC ( fid --- c|-1)
-    \G Read a single character from a file or return -1 for EOF.
+\G Read a single character from a file or return -1 for EOF.
     DUP FEOF IF
 	DROP -1 
     ELSE
@@ -670,9 +782,9 @@ VARIABLE FID
 \ PARAMETER field: (body) Contains the data of constants and variables etc.
 
 VARIABLE FORTH-WORDLIST ( --- addr)
-6 CELLS-T ALLOT-T
 \G This array holds pointers to the last definition of each thread in the Forth
 \G word list.
+6 CELLS-T ALLOT-T
 
 VARIABLE LAST ( --- addr)
 \G This variable holds a pointer to the last definition created.
@@ -688,13 +800,37 @@ VARIABLE CURRENT ( --- addr)
 \G This variable holds the address of the word list to which new definitions
 \G are added.
 
-: HASH ( c-addr u #threads --- n)
+\ Use a code definition instead.
+\ : HASH ( c-addr u #threads --- n)
+\  >R OVER C@ 1 LSHIFT OVER 1 > IF ROT CHAR+ C@ 2 LSHIFT XOR ELSE ROT DROP
+\   THEN XOR
+\  R> 1- AND
+\ ;
+CODE HASH ( c-addr u #threads --- n)
 \G Compute the hash function for the name c-addr u with the indicated number
 \G of threads.
-  >R OVER C@ 1 LSHIFT OVER 1 > IF ROT CHAR+ C@ 2 LSHIFT XOR ELSE ROT DROP
-   THEN XOR
-  R> 1- AND
-;
+    LD A, C
+    POP BC
+    LD B, A
+    POP HL
+    LD A, C
+    CP $1
+    LD A, $0
+    0<> IF
+	INC HL
+	LD A, (HL)  \ If length > 1 use second char in hash
+	ADD A, A
+	DEC HL
+    THEN
+    XOR (HL)   \ Use first char
+    ADD A, A
+    XOR C      \ XOR length
+    DEC B
+    AND B
+    LD B, $0
+    LD C, A 
+    NEXT
+END-CODE    
 
 : SEARCH-WORDLIST ( c-addr u wid --- 0 | xt 1 | xt -1)
 \G Search the wordlist with address wid for the name c-addr u.

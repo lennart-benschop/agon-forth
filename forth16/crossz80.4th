@@ -8,7 +8,7 @@
   GET-ORDER SWAP DROP R> @ SWAP SET-ORDER ;
 
 .( Loading the assembler "asmz80.4th") CR
-S" asmz80.4th" INCLUDED
+S" ../forthlib/asmz80.4th" INCLUDED
 
 .( Loading the meta compiler "metaz80.4th") CR
 S" metaz80.4th" INCLUDED

@@ -56,7 +56,7 @@ VOCABULARY TRANSIENT
 \ Next we need to define the target space and the words to access it.
 
     0 CONSTANT ORIGIN \ Start address of Forth image.
-12000 CONSTANT IMAGE_SIZE
+16384 CONSTANT IMAGE_SIZE
 
 
 CREATE IMAGE IMAGE_SIZE CHARS ALLOT \ This space contains the target image.
