@@ -49,6 +49,8 @@ that are specific to Agon FORTH, but that run under both the 16-bit and the
   This is a slight adaptation of this game.
 * restit.4th Tetris-type game originally submitted to the Olimex WPS July 2023.
   Slight modifications.
+* spacer.4th 2D horizontal shooter game inspired by TI Parsec. Uses character
+  graphics only.
 * graphics.4th Graphics library, including turtle graphics.
 * grpdemo.4th Graphics demo, runs on top of graphics.4th
 * dodemo.4th. Load graphics.4th and grpdemo.4th and then runs the demo. Put forth.bin (or forth24.bin), graphics.4th, grpdemo.4th and dodemo.4th all in one directory, then the following
