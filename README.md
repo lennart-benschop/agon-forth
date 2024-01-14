@@ -59,4 +59,8 @@ that are specific to Agon FORTH, but that run under both the 16-bit and the
 load forth.bin
 run . dodemo.4th
 ```
+## games
 
+Three ready-to run binaries of the games serpent, restit and spacer. You
+can run them as MOS commands or just load them as binaries. 
+These are 'turnkey' versions of the corresponding FORTH sources.

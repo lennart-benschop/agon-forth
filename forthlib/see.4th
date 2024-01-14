@@ -3,7 +3,7 @@
 \ license: GNU General Public License version 3, see LICENSE for more details.
 
 
-' 0 1+ @ CONSTANT 'DOCON
+' 1 1+ @ CONSTANT 'DOCON
 ' LOADLINE 1+ @ CONSTANT 'DOVAR
 ' FORGET 1+ @ CONSTANT 'DOCOL
 

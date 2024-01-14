@@ -129,6 +129,22 @@ END-VDU
 $00 C, $14 C, $00 C, $8A C, $00 C, $92 C, $00 C, $44 C,
 END-VDU
 
+149 VDUDG ASTEROID1
+$0F C, $3F C, $3F C, $7F C, $F7 C, $FF C, $FB C, $FF C,
+END-VDU
+
+150 VDUDG ASTEROID2
+$F0 C, $FC C, $FC C, $FE C, $EF C, $FF C, $DF C, $FF C,
+END-VDU
+
+151 VDUDG ASTEROID3
+$FF C, $F7 C, $FF C, $FD C, $7F C, $7F C, $3F C, $0F C,
+END-VDU
+
+152 VDUDG ASTEROID4
+$FF C, $EF C, $FF C, $7F C, $FE C, $FC C, $EC C, $F0 C,
+END-VDU
+
 : ,"
 \G Add a counted string to the dictionary.
     [CHAR] " WORD COUNT 1+ ALLOT DROP ;    
@@ -222,35 +238,49 @@ VDU SCROLL-SEQ
   26 C,                         \ Cancel text viewport
 END-VDU
 
-: NEWCHAR ( row --- c)
-    BGPTR @ COUNT
-    ROT 27 SWAP - DUP ROT >= IF
-	2DROP 20 RANDOM 0= IF '.' ELSE BL THEN
-    ELSE
-	+ C@
-    THEN
-;
-
 VARIABLE ROW
 VARIABLE SCROLL-TIMER
-VARIABLE SCROLL-RATE
+VARIABLE SCROLL-PERIOD
 
 VARIABLE LASER-TEMP
 
 VARIABLE ADD-ENEMY-TIMER
-VARIABLE ADD-ENEMY-RATE
+VARIABLE ADD-ENEMY-PERIOD
 
 VARIABLE ENEMIES-ADDED
 VARIABLE ENEMIES-KILLED
 VARIABLE ENEMY-MODE 
 
+VARIABLE LAST-CHAR 
+: NEWCHAR ( row --- c)
+    BGPTR @ COUNT
+    ROT 27 SWAP - DUP ROT >= IF
+	2DROP 20 RANDOM 0= IF '.' ELSE BL THEN
+	ENEMY-MODE @ 3 = IF
+	    LAST-CHAR @ 149 151 WITHIN IF
+		DROP LAST-CHAR @ 2+ 
+	    ELSE
+		PLAYFIELD  ROW @ 40 * + 38 + DUP C@ 149 = IF
+		    2DROP 150
+		ELSE
+		    40 + C@ 149 <> 100 RANDOM 0= AND  ROW @ 19 < AND IF DROP 149 THEN
+		THEN
+	    THEN
+	THEN
+    ELSE
+	+ C@
+    THEN
+;
+
 : SCROLL-BACKGROUND
     0 ROW !
+    0 LAST-CHAR !
     SCROLL-SEQ
     15 COL
     1120 0 DO
 	PLAYFIELD I + DUP 1+ SWAP 39 CMOVE
 	ROW @ NEWCHAR DUP PLAYFIELD I + 39 + C!
+	DUP LAST-CHAR !
 	39 ROW @ AT-XY EMIT
 	ROW @ 20 = IF 11 COL THEN
 	1 ROW +!
@@ -260,10 +290,10 @@ VARIABLE ENEMY-MODE
 	FUEL @ 1024 < IF
 	    DROP REFUEL-BACKGROUND BGPTR !
 	    10 28 AT-XY 15 COL ." Time to refuel in tunnel"
-	    8 SCROLL-RATE !
+	    8 SCROLL-PERIOD !
         ELSE	    
 	    DROP NORMAL-BACKGROUND BGPTR !
-	    4 SCROLL-RATE !
+	    4 SCROLL-PERIOD !
 	THEN
     ELSE
 	BGPTR !
@@ -362,60 +392,50 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	$FF SHIP-DATA BYTES-PER-SHIP 3 * + 6 + C!
     THEN
 ;
+
+: MOVE-BY-RATE ( addr --- pos)
+\ Alter the position of a ship as indicated by its rate.
+\ addr offs 0 timer (counter incremented by rate, if exceeds 16, do the move)
+\           1 dir 00 no move, 1 increment $FF deccrement    
+\           2 rate, to be added to timer each cycle
+\                   (if rate==16 move each cycle).
+\           3 pos is position in character cells. 
+    >R       \ Save address
+    R@ 2+ C@ R@ C@  + DUP $0F AND R@ C! \ Increment timer by rate
+    4 RSHIFT \ How much to move by (16 translates to 1, anything less to 0).
+    R@ 1+ C@ $FF = IF NEGATE THEN \ Decrement depending on direction.
+    R@ 3 + C@ + DUP  \ Increment position.
+    0 MAX 38 MIN R> 3 + C! \ Clip position and store back (return unclipped posotition).
+;
     
 : MOVE-SHIPS
     ENEMY-MODE @ 2 = IF BOUNCE-BIG-SHIP THEN
     SHIP-DATA SHIP-ARRAY-SIZE BOUNDS DO
 	I C@ IF \ Is this ship active?
-	    I 3 + C@ IF
-		I 1+ C@ 1+ I 1+ C!		    
-		I 1+ C@  I 3 + C@  >= IF
-		    0 I 1+ C!
-		    I 2+ C@ 1 = IF
-			I 4 + DUP C@ 1+ SWAP C!
-			I 4 + C@ 39 = IF
-			    I C@ 1 = IF
-				0 I 4 + C! \ Wrap around X
-			    ELSE
-				38 I 4 + C!  \ Clip to right
-			    THEN
-			THEN
-		    ELSE
-			I 4 + DUP C@ 1- SWAP C!
-			I 4 + C@ $FF = IF
-			    I C@ 1 = IF
-				38 I 4 + C! \ Wrap around X
-			    ELSE
-				I C@ 2 = IF
-				    0 I 4 + C! \ Clip to left
-				ELSE
-				    SHIP-DATA BYTES-PER-SHIP + 4 + C@ 2-
-				    I 4 + C! \ Appear to relaunch from main ship
-				    SHIP-DATA BYTES-PER-SHIP + 8 + C@ I 8 + C!
-				    0 0 VOLUME 500 20 TONE
-				THEN
-			    THEN
-			THEN
+	    \ Adjust X position.
+	    I 1+ MOVE-BY-RATE
+	    DUP 0< IF
+		DROP 
+		\ Wrap around X of to the left.
+		I C@ 1 = IF
+		    38 I 4 + C!
+		ELSE
+		    I C@ 3 = IF 
+			SHIP-DATA BYTES-PER-SHIP + 4 + C@ 2-
+			I 4 + C! \ Appear to relaunch from main ship
+			SHIP-DATA BYTES-PER-SHIP + 8 + C@ I 8 + C!
+			0 0 VOLUME 500 20 TONE
 		    THEN
-		THEN   
-	    THEN
-	    I 7 + C@ IF
-		I 5 + C@ 1+ I 5 + C!		    
-		I 5 + C@  I 7 + C@  >= IF
-		    0 I 5 + C!
-		    I 6 + C@ 1 = IF
-			I 8 + DUP C@ 1+ SWAP C!
-			I 8 + C@ 29 = IF
-			   28 I 8 + C! 
-			THEN
-		    ELSE
-			I 8 + DUP C@ 1- SWAP C!
-			I 8 + C@ $FF = IF
-			   0 I 8 + C! 
-			THEN
+		THEN		
+	    ELSE
+		38 > IF
+		    \ Wrap around X of to the right.
+		    I C@ 1 = IF
+			0 I 4 + C!
 		    THEN
-		THEN   
+		THEN
 	    THEN
+	    I 5 + MOVE-BY-RATE DROP
 	    I C@ IF
 		I 4 + C@ I 8 + C@ AT-XY 17 EMIT
 		I 9 + 3 TYPE
@@ -518,10 +538,10 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 
 : SHOW-LIFT
     0 28 AT-XY 15 COL  ." LIFT "
-    LIFT @ 1 = IF
+    LIFT @ 16 = IF
 	3
     ELSE
-	LIFT @ 2 = IF
+	LIFT @ 8 = IF
 	    2   
 	ELSE
 	    1
@@ -538,7 +558,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
     16 0 SET-POS-X 
     12 0 SET-POS-Y 
     SHOW-SCORE
-    2 LIFT !
+    8 LIFT !
     SHOW-LIFT 
     0 ENEMIES-ADDED !
     0 ENEMIES-KILLED !
@@ -558,7 +578,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	    1 ENEMIES-ADDED +!
 	    20 RANDOM ENEMIES-ADDED @ SET-POS-Y
 	    38 ENEMIES-ADDED @ SET-POS-X
-	    -2 ENEMIES-ADDED @ SET-RATE-X
+	    -8 ENEMIES-ADDED @ SET-RATE-X
 	    0 ENEMIES-ADDED @ SET-RATE-Y
 	ELSE
 	    ENEMY-MODE @ 1 = IF
@@ -568,36 +588,42 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 		1 ENEMIES-ADDED +!
 		20 RANDOM ENEMIES-ADDED @ SET-POS-Y
 		0 ENEMIES-ADDED @ SET-POS-X
-		2 ENEMIES-ADDED @ SET-RATE-X
+		8 ENEMIES-ADDED @ SET-RATE-X
 		0 ENEMIES-ADDED @ SET-RATE-Y
 	    ELSE
-		\ ENEMY-MODE = 2
-		ENEMIES-ADDED @ ENEMIES-KILLED @ = IF
-		    0 0 VOLUME 600 100 TONE
-		    0 0 VOLUME 200 100 TONE
-		    15 141 142 1 1 ADD-SHIP
+		ENEMY-MODE @ 2 = IF
+		    \ ENEMY-MODE = 2
+		    ENEMIES-ADDED @ ENEMIES-KILLED @ = IF
+			0 0 VOLUME 600 100 TONE
+			0 0 VOLUME 200 100 TONE
+			15 141 142 1 1 ADD-SHIP
+			1 ENEMIES-ADDED +!
+			18 RANDOM 1+ >R
+			R@ 1 SET-POS-Y
+			37 1 SET-POS-X
+			0 1 SET-RATE-X
+			4 1 SET-RATE-Y
+			15 143 144 1 2 ADD-SHIP
+			R@ 1- 2 SET-POS-Y
+			38 2 SET-POS-X
+			0 2 SET-RATE-X
+			4 2 SET-RATE-Y
+			15 145 146 1 3 ADD-SHIP
+			R@ 1+ 3 SET-POS-Y
+			38 3 SET-POS-X
+			0 3 SET-RATE-X
+			4 3 SET-RATE-Y \ Ships 1, 2 and 3 form the big white ship
+			\ All are making the same movement.
+			15 133 134 3 4 ADD-SHIP
+			R> 4 SET-POS-Y
+			35 4 SET-POS-X
+			-16 4 SET-RATE-X
+			\ 'ship 4' is our missile.
+		    THEN
+		ELSE
 		    1 ENEMIES-ADDED +!
-		    18 RANDOM 1+ >R
-		    R@ 1 SET-POS-Y
-		    37 1 SET-POS-X
-		    0 1 SET-RATE-X
-		    4 1 SET-RATE-Y
-		    15 143 144 1 2 ADD-SHIP
-		    R@ 1- 2 SET-POS-Y
-		    38 2 SET-POS-X
-		    0 2 SET-RATE-X
-		    4 2 SET-RATE-Y
-		    15 145 146 1 3 ADD-SHIP
-		    R@ 1+ 3 SET-POS-Y
-		    38 3 SET-POS-X
-		    0 3 SET-RATE-X
-		    4 3 SET-RATE-Y \ Ships 1, 2 and 3 form the big white ship
-		    \ All are making the same movement.
-		    15 133 134 3 4 ADD-SHIP
-		    R> 4 SET-POS-Y
-		    35 4 SET-POS-X
-		    -1 4 SET-RATE-X
-		    \ 'ship 4' is our missile.
+		    ENEMIES-ADDED @ ENEMIES-KILLED !
+		    \ Don't have enemy ships in this mode, just asteroids.
 		THEN
 	    THEN
 	THEN
@@ -607,7 +633,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	    0 ENEMIES-ADDED !
 	    0 ENEMIES-KILLED !
 	    1 ENEMY-MODE +!
-	    ENEMY-MODE @ 2 > IF 0 ENEMY-MODE ! THEN
+	    ENEMY-MODE @ 3 > IF 0 ENEMY-MODE ! THEN
 	THEN
     THEN
 ;
@@ -624,18 +650,14 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 		\ Change characters in background array to UDG range.
 	REPEAT
     LOOP
-    \ Define all UDGs
-    BG0 BG1 BG2 BG3 LASER-G MIS1 MIS2 SHIP1 SHIP2
-    EN1-1 EN1-2 EN2-1 EN2-2 EN3-1 EN3-2 EN3-3 EN3-4 EN3-5 EN3-6
-    EXPL1 EXPL2
     0 0 WAVE
     0 ENEMY-MODE !
     3 #SHIPS !
     0 SCORE !
     2000 BONUS-SCORE !
     10000 FUEL !
-    4 SCROLL-RATE !
-    200 ADD-ENEMY-RATE !
+    4 SCROLL-PERIOD !
+    100 ADD-ENEMY-PERIOD !
 ;    
 
 : MAINLOOP
@@ -644,13 +666,13 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	VWAIT
 	0 0 SET-RATE-X
 	0 0 SET-RATE-Y
-	KEY-1 KEYCODE? IF 5 LIFT ! SHOW-LIFT THEN
-	KEY-2 KEYCODE? IF 2 LIFT ! SHOW-LIFT THEN
-	KEY-3 KEYCODE? IF 1 LIFT ! SHOW-LIFT THEN
+	KEY-1 KEYCODE? IF 4 LIFT ! SHOW-LIFT THEN
+	KEY-2 KEYCODE? IF 8 LIFT ! SHOW-LIFT THEN
+	KEY-3 KEYCODE? IF 16 LIFT ! SHOW-LIFT THEN
 	KEY-UP KEYCODE?   IF LIFT @ NEGATE  0 SET-RATE-Y THEN
 	KEY-DOWN KEYCODE? IF LIFT @  0 SET-RATE-Y THEN
-	KEY-LEFT KEYCODE? IF -2 0 SET-RATE-X THEN
-	KEY-RIGHT KEYCODE? IF 2 0 SET-RATE-X THEN
+	KEY-LEFT KEYCODE? IF -8 0 SET-RATE-X THEN
+	KEY-RIGHT KEYCODE? IF 8 0 SET-RATE-X THEN
 	KEY-SPACE KEYCODE? LASER-ON
 	KEY-ESC KEYCODE? IF QUITTING ON 0 #SHIPS ! THEN
 	LASER-TEMP @ IF
@@ -658,12 +680,12 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	THEN
 	HIDE-SHIPS
 	1 SCROLL-TIMER +!
-	SCROLL-TIMER @ SCROLL-RATE @ >= IF
+	SCROLL-TIMER @ SCROLL-PERIOD @ >= IF
 	    SCROLL-BACKGROUND
 	    0 SCROLL-TIMER !
 	THEN
 	1 ADD-ENEMY-TIMER +!
-	ADD-ENEMY-TIMER @ ADD-ENEMY-RATE @ >= IF
+	ADD-ENEMY-TIMER @ ADD-ENEMY-PERIOD @ >= IF
 	    ADD-ENEMY
 	    0 ADD-ENEMY-TIMER !
 	THEN
@@ -671,7 +693,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	IF
 	    -1 FUEL +!
 	ELSE
-	    1 0 SET-RATE-Y \ Force ship to hit the ground if no more fuel.
+	    2 0 SET-RATE-Y \ Force ship to hit the ground if no more fuel.
 	THEN
 	FUEL @ $3FF AND $3FF = IF SHOW-SCORE THEN
 	MOVE-SHIPS
@@ -679,8 +701,41 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	QUITTING @
     UNTIL ;
 
+: INSTRUCTIONS
+    \ Define all UDGs
+    BG0 BG1 BG2 BG3 LASER-G MIS1 MIS2 SHIP1 SHIP2
+    EN1-1 EN1-2 EN2-1 EN2-2 EN3-1 EN3-2 EN3-3 EN3-4 EN3-5 EN3-6
+    EXPL1 EXPL2
+    ASTEROID1 ASTEROID2 ASTEROID3 ASTEROID4
+    ." Cusror keys to control your ship " 10 COL 135 EMIT 136 EMIT
+    15 COL
+    CR ." Keys 1, 2, 3 set rate of ascent/descent"
+    CR
+    CR ." SPACE fires your laser."
+    CR ." Be careful, do not overheat!"
+    CR ." Destroy all enemy ships with your laser"
+    CR
+    CR ." Descend into tunnel when low on fuel"
+    CR
+    CR ." Asteroids " 149 EMIT 150 EMIT SPACE SPACE ." you cannot destroy"
+    CR ."           " 151 EMIT 152 EMIT
+    CR ." Navigate around them."
+    CR
+    CR
+    CR 5 COL 137 EMIT 138 EMIT 15 COL 10 SPACES ." 50 points"
+    CR
+    CR 6 COL 139 EMIT 140 EMIT 15 COL 10 SPACES ." 60 points"
+    CR
+    CR SPACE 143 EMIT 144 EMIT 
+    CR  141 EMIT 142 EMIT 10 SPACES ." 75 points"
+    CR SPACE 145 EMIT 146 EMIT
+    0 29 AT-XY ." Press any key to start game " KEY DROP
+;
+;
+
 : SPACER
     8 MODE 0 CURSOR
+    INSTRUCTIONS
     BEGIN 
 	INITIALIZE-GAME
 	BEGIN
@@ -695,6 +750,8 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 ;
 
 : RUN-SPACER
+    500 MS
+    0 5 SYSVARS! \ Clear key code.    
     SPACER BYE ;
 
 CR .( Type SPACER to start the game)
