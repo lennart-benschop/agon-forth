@@ -199,18 +199,18 @@ CREATE REFUEL-BACKGROUND
 ," 0  003 "
 ," 0  003 "
 ," 0  003 "
-," 0  003 "
-," 0  003 "
-," 0  003 "
-," 0  001 "
-," 0FF03  "
-," 0UU03  "
-," 0EE03  "
-," 0LL002 "
-," 0  003 "
-," 0  003 "
-," 0  003 "
-," 0  003 "
+," 0 0003 "
+," 0 0003 "
+," 0 0003 "
+," 0 0001 "
+," 0F003  "
+," 0U003  "
+," 0E003  "
+," 0L0002 "
+," 0 0003 "
+," 0 0003 "
+," 0 0003 "
+," 0 0003 "
 ," 0  003 "
 ," 0  003 "
 ," 0  003 "
@@ -252,51 +252,55 @@ VARIABLE ENEMIES-KILLED
 VARIABLE ENEMY-MODE 
 
 VARIABLE LAST-CHAR 
-: NEWCHAR ( row --- c)
+: NEWCHAR ( rowaddr row --- c)
     BGPTR @ COUNT
     ROT 27 SWAP - DUP ROT >= IF
-	2DROP 20 RANDOM 0= IF '.' ELSE BL THEN
-	ENEMY-MODE @ 3 = IF
-	    LAST-CHAR @ 149 151 WITHIN IF
-		DROP LAST-CHAR @ 2+ 
+	2DROP 20 RANDOM 0= IF '.' ELSE BL THEN \ star or empty for background
+	LAST-CHAR @ 149 151 WITHIN IF
+	    DROP LAST-CHAR @ 2+    \ top half char of asteroid, select bottom
+	ELSE
+	    OVER 38 + DUP C@ 149 = IF
+		2DROP 150          \ previous colum has left top of asteroid, tkae right half.  
 	    ELSE
-		PLAYFIELD  ROW @ 40 * + 38 + DUP C@ 149 = IF
-		    2DROP 150
+		ENEMY-MODE @ 3 = IF
+		    41 + C@ 149 <> 100 RANDOM 0= AND  ROW @ 19 < AND IF DROP 149 THEN \ start a new asteroid if enemy-mode=3 last colum 1 cell below does not have asteroid and at random.
 		ELSE
-		    40 + C@ 149 <> 100 RANDOM 0= AND  ROW @ 19 < AND IF DROP 149 THEN
+		    DROP
 		THEN
 	    THEN
 	THEN
     ELSE
-	+ C@
+	+ C@ \ pick char from counted string of background.
     THEN
+    NIP \ discard row address
 ;
 
 : SCROLL-BACKGROUND
     0 ROW !
     0 LAST-CHAR !
-    SCROLL-SEQ
+    SCROLL-SEQ \ scroll 8 pixels to the left.
     15 COL
     1120 0 DO
-	PLAYFIELD I + DUP 1+ SWAP 39 CMOVE
-	ROW @ NEWCHAR DUP PLAYFIELD I + 39 + C!
+	PLAYFIELD I + DUP DUP 1+ SWAP 39 CMOVE \ move row in playfield.
+	ROW @ NEWCHAR DUP PLAYFIELD I + 39 + C! \ add new char to the right.
 	DUP LAST-CHAR !
-	39 ROW @ AT-XY EMIT
-	ROW @ 20 = IF 11 COL THEN
+	39 ROW @ AT-XY EMIT            \ print it.
+	ROW @ 20 = IF 11 COL THEN 
 	1 ROW +!
     40 +LOOP
+    \ select new column of background string array.
     BGPTR @ COUNT + DUP C@ 0=
-    IF
+    IF \ at end.
 	FUEL @ 1024 < IF
-	    DROP REFUEL-BACKGROUND BGPTR !
+	    DROP REFUEL-BACKGROUND BGPTR ! \ low on fuel, then add tunnel.
 	    10 28 AT-XY 15 COL ." Time to refuel in tunnel"
 	    8 SCROLL-PERIOD !
         ELSE	    
-	    DROP NORMAL-BACKGROUND BGPTR !
+	    DROP NORMAL-BACKGROUND BGPTR ! \ otherwise normal background.
 	    4 SCROLL-PERIOD !
 	THEN
     ELSE
-	BGPTR !
+	BGPTR ! \ select next string in current array.
     THEN
 ;
 
@@ -405,7 +409,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
     4 RSHIFT \ How much to move by (16 translates to 1, anything less to 0).
     R@ 1+ C@ $FF = IF NEGATE THEN \ Decrement depending on direction.
     R@ 3 + C@ + DUP  \ Increment position.
-    0 MAX 38 MIN R> 3 + C! \ Clip position and store back (return unclipped posotition).
+    0 MAX 38 MIN R> 3 + C! \ Clip position and store back (return unclipped position).
 ;
     
 : MOVE-SHIPS
@@ -462,7 +466,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
     IF
 	0 0 VOLUME 1000 20 TONE
 	SHIP-X 2+ SHIP-Y AT-XY 15 COL
-	40 SHIP-X 2+ DO 132 EMIT LOOP
+	40 SHIP-X 2+ DO 132 EMIT LOOP \ show laser beam.
 	VWAIT
 	2 LASER-TEMP +!
 	ENEMY-MODE @ 2 = IF
@@ -478,6 +482,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	ELSE
 	    SHIP-DATA SHIP-ARRAY-SIZE  BOUNDS BYTES-PER-SHIP + ?DO
 		I C@ 1 = IF
+		    \ Laser has hit one or more enemy ships
 		    I 8 + C@ SHIP-Y = I 4 + C@ SHIP-X > AND IF
 			ENEMY-MODE @ 10 * 50 + SCORE +! SHOW-SCORE
 			0 I C!
@@ -487,7 +492,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	    BYTES-PER-SHIP +LOOP
 	THEN
 	SHIP-X 2+ SHIP-Y
-	40 SHIP-X 2+ - TYPE-BACKGROUND
+	40 SHIP-X 2+ - TYPE-BACKGROUND \ restore background, remove beam.
     THEN
 ;
 
@@ -514,7 +519,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
     THEN 
     LASER-TEMP @ 20 > IF
 	TRUE
-	10 28 AT-XY 15 COL ." Laser overheated" 2
+	10 28 AT-XY 15 COL ." Laser overheated" 
 	SHOW-EXPL
 	EXIT
     THEN
@@ -707,7 +712,11 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
     EN1-1 EN1-2 EN2-1 EN2-2 EN3-1 EN3-2 EN3-3 EN3-4 EN3-5 EN3-6
     EXPL1 EXPL2
     ASTEROID1 ASTEROID2 ASTEROID3 ASTEROID4
-    ." Cusror keys to control your ship " 10 COL 135 EMIT 136 EMIT
+    11 COL 14 0 AT-XY ." S-P-A-C-E-R" 15 COL
+    CR
+    CR ." v0.1 Copyright 2024 L.C. Benschop"
+    CR
+    CR ." Cursor keys to control your ship " 10 COL 135 EMIT 136 EMIT
     15 COL
     CR ." Keys 1, 2, 3 set rate of ascent/descent"
     CR
@@ -731,10 +740,10 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
     CR SPACE 145 EMIT 146 EMIT
     0 29 AT-XY ." Press any key to start game " KEY DROP
 ;
-;
 
 : SPACER
     8 MODE 0 CURSOR
+    RANDOMIZE
     INSTRUCTIONS
     BEGIN 
 	INITIALIZE-GAME
