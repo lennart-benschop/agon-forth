@@ -261,6 +261,7 @@ VARIABLE SOURCE-LINK
   16 0 DO
    DUP I + C@ 0 <# # # #> TYPE
   LOOP
+  SPACE
   16 0 DO
    DUP I + C@ DUP 32 < OVER 127 = OR IF DROP ." ." ELSE EMIT THEN
   LOOP
@@ -271,7 +272,7 @@ VARIABLE SOURCE-LINK
 \G Show a hex/ascii dump of the memory block of len bytes at addr
   7 + 4 RSHIFT 0 DO
    DL ?TERMINAL IF LEAVE THEN
-  LOOP DROP ;
+  LOOP DROP CR ;
 
 : H. ( u ----)
     BASE @ >R HEX U. R> BASE ! ;
