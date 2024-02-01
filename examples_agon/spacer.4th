@@ -49,6 +49,8 @@ VARIABLE SCORE
 VARIABLE BONUS-SCORE
 VARIABLE FUEL
 VARIABLE LIFT
+VARIABLE LEVEL
+VARIABLE LOCKED \ Lock out the laser hitting the ship immediately again 
 
 VARIABLE QUITTING
 
@@ -462,31 +464,62 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 : SHIP-X SHIP-DATA 4 + C@ ;
 : SHIP-Y SHIP-DATA 8 + C@ ;
 
+CREATE COLOUR-TRANS1 0 C, 1 C, 2 C, 3 C, 4 C, 1 C, 4 C, 4 C,
+                    0 C, 0 C, 0 C, 0 C, 0 C, 0 C, 0 C, 3 C, 
+CREATE COLOUR-TRANS2 0 C, 1 C, 2 C, 3 C, 4 C, 11 C, 10 C, 4 C,
+                    0 C, 0 C, 4 C, 1 C, 0 C, 0 C, 0 C, 14 C, 
+\ Change the ship's colour and return a flag to indicate the ship is finally destroyed.
+: CHANGE-COL ( c1 --- f c2)
+    LOCKED @ IF
+	0 SWAP
+    ELSE
+	DUP 4 <= SWAP
+	LEVEL @ 4 < IF COLOUR-TRANS1 ELSE COLOUR-TRANS2 THEN
+	+ C@
+    THEN ; 
+
 : LASER-ON
     IF
 	0 0 VOLUME 1000 20 TONE
 	SHIP-X 2+ SHIP-Y AT-XY 15 COL
-	40 SHIP-X 2+ DO 132 EMIT LOOP \ show laser beam.
+	40 SHIP-X 2+ ?DO 132 EMIT LOOP \ show laser beam.
 	VWAIT
 	2 LASER-TEMP +!
 	ENEMY-MODE @ 2 = IF
 	    SHIP-DATA BYTES-PER-SHIP +
 	    DUP C@ 1 = OVER 8 + C@ SHIP-Y = AND SWAP 4 + C@ SHIP-X > AND
 	    IF
-		\ Laser has hit main enemy ship.
-		1 ENEMIES-KILLED +!
-		HIDE-SHIPS
-		75 SCORE +! SHOW-SCORE
-		SHIP-DATA BYTES-PER-SHIP + BYTES-PER-SHIP 4 * ERASE
+		LEVEL @ 1 > IF
+		    SHIP-DATA BYTES-PER-SHIP + 9 + DUP >R C@ CHANGE-COL
+		    DUP R@ C! DUP R@ BYTES-PER-SHIP + C! R> BYTES-PER-SHIP 2* + C!
+		    1 LOCKED !
+		ELSE
+		    TRUE
+		THEN
+		IF 
+		    \ Laser has hit main enemy ship.
+		    1 ENEMIES-KILLED +!
+		    HIDE-SHIPS
+		    75 SCORE +! SHOW-SCORE
+		    SHIP-DATA BYTES-PER-SHIP + BYTES-PER-SHIP 4 * ERASE
+		THEN
 	    THEN
 	ELSE
-	    SHIP-DATA SHIP-ARRAY-SIZE  BOUNDS BYTES-PER-SHIP + ?DO
-		I C@ 1 = IF
+	    SHIP-DATA SHIP-ARRAY-SIZE  BOUNDS BYTES-PER-SHIP + DO
+		I C@ IF
 		    \ Laser has hit one or more enemy ships
 		    I 8 + C@ SHIP-Y = I 4 + C@ SHIP-X > AND IF
-			ENEMY-MODE @ 10 * 50 + SCORE +! SHOW-SCORE
-			0 I C!
-			1 ENEMIES-KILLED +!
+			LEVEL @ 1 > IF			    
+			    I 9 + C@ CHANGE-COL I 9 + C!
+			    1 LOCKED !
+			ELSE
+			    TRUE
+			THEN
+			IF    
+			    ENEMY-MODE @ 10 * 50 + SCORE +! SHOW-SCORE
+			    0 I C!
+			    1 ENEMIES-KILLED +!
+			THEN
 		    THEN
 		THEN
 	    BYTES-PER-SHIP +LOOP
@@ -495,6 +528,19 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	40 SHIP-X 2+ - TYPE-BACKGROUND \ restore background, remove beam.
     THEN
 ;
+
+\ Reset fuel for a new ship or after refueling. Get less as the game
+\ gets harder.
+: SET-FUEL
+    LEVEL @ 2 < IF
+	10000
+    ELSE
+	LEVEL @ 4 < IF
+	    5000
+	ELSE
+	    2500
+	THEN
+    THEN FUEL ! ;
 
 : SHOW-EXPL
 \ Show exploding ship    
@@ -506,7 +552,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 : COLLISION-DETECT ( --- f)
     PLAYFIELD SHIP-Y 40 * + SHIP-X + @ DUP $455546 =
     IF
-	DROP 10000 FUEL !
+	DROP SET-FUEL
 	SHOW-SCORE
 	10 28 AT-XY 20 SPACES
 	FALSE EXIT
@@ -638,7 +684,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	    0 ENEMIES-ADDED !
 	    0 ENEMIES-KILLED !
 	    1 ENEMY-MODE +!
-	    ENEMY-MODE @ 3 > IF 0 ENEMY-MODE ! THEN
+	    ENEMY-MODE @ 3 > IF 0 ENEMY-MODE ! 1 LEVEL +! THEN
 	THEN
     THEN
 ;
@@ -655,12 +701,14 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 		\ Change characters in background array to UDG range.
 	REPEAT
     LOOP
+    0 LEVEL !
+    0 LOCKED !
     0 0 WAVE
     0 ENEMY-MODE !
     3 #SHIPS !
     0 SCORE !
     2000 BONUS-SCORE !
-    10000 FUEL !
+    SET-FUEL
     4 SCROLL-PERIOD !
     100 ADD-ENEMY-PERIOD !
 ;    
@@ -682,6 +730,8 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	KEY-ESC KEYCODE? IF QUITTING ON 0 #SHIPS ! THEN
 	LASER-TEMP @ IF
 	    -1 LASER-TEMP +!
+	ELSE
+	    0 LOCKED !
 	THEN
 	HIDE-SHIPS
 	1 SCROLL-TIMER +!
@@ -702,7 +752,7 @@ CREATE SHIP-DATA  SHIP-ARRAY-SIZE ALLOT
 	THEN
 	FUEL @ $3FF AND $3FF = IF SHOW-SCORE THEN
 	MOVE-SHIPS
-	COLLISION-DETECT IF QUITTING ON -1 #SHIPS +! 10000 FUEL ! THEN
+	COLLISION-DETECT IF QUITTING ON -1 #SHIPS +! SET-FUEL THEN
 	QUITTING @
     UNTIL ;
 
