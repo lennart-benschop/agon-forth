@@ -1044,6 +1044,7 @@ END-CODE
 CODE H! ( x a-addr ---)
 \G store 16-bit value x at a-addr
     EX DE, HL
+    POP DE
     LD (HL), E
     INC HL
     LD (HL), D
