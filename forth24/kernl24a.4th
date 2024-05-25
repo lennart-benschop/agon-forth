@@ -4,6 +4,7 @@
 \ Most Z80 primitives: ; Copyright (c) 1994,1995 Bradford J. Rodriguez
 \ copyleft (c) 2022 L.C. Benschop for Cerberus 2080.
 \ copyleft (c) 2023 L.C. Benschop Agon FORTH
+\ Modified 2924, small fix to H! 
 \ license: GNU General Public License version 3, see LICENSE for more details.
 \ It is extensively commented as it must serve as an introduction to the
 \ construction of Forth compilers.
