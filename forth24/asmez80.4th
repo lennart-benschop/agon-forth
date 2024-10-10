@@ -51,7 +51,7 @@ VARIABLE ADLFLAG
 : >@MARK ( --- addr )
   HERE 0 , ADLFLAG @ 0= IF -1 ALLOT THEN ;
 : >@RESOLVE ( addr --- )
-  SWAP ADLFLAG @ IF V! ELSE VH! THEN ;
+  HERE SWAP ADLFLAG @ IF V! ELSE VH! THEN ;
 
 
 \ This is a prefix assembler, so the source code looks much like
@@ -402,7 +402,7 @@ CDC4 2  JMPINST CALL
 	DSTREG @ 702 = IF
 	    SRCREG @ 701 = IF ED55 ELSE ED33 THEN OPCODE !
 	ELSE
-	    SRCREG @ FF AND 1 + DSTREG @ EDFF AND 4 LSHIFT + OPCODE !
+	    SRCREG @ FF AND 1+ DSTREG @ FF AND 4 LSHIFT + ED00 + OPCODE !
 	THEN
     THEN
 ;
@@ -720,6 +720,8 @@ FORTH DEFINITIONS
 \G Terminate a code definition
   [ ASSEMBLER ] ENDASM [ FORTH ] ;
 
+: SUBROUTINE ( "ccc" --- )
+  CREATE ASSEMBLE ;  
 
 PREVIOUS FORTH DEFINITIONS
 

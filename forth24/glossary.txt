@@ -226,6 +226,10 @@ c-addr2
 >BODY   xt --- a-addr                                                          
 Convert execution token to parameter field address.
 
+>FLOAT   c-addr u --- true | false F: ---r |                                   
+Convert the string at c-addr u to a floating point number. If
+success rutrn true and a floating point number on the FP stack, else
+
 >IN   --- addr                                                                 
 This variable holds an index in the current input source where the next word
 will be parsed.
@@ -481,6 +485,9 @@ Compare d1 and d2, flag = true if d1<d2
 D=   d1 d1  --- f                                                              
 f is true if and only if d1 and d2 are equal.
 
+D>F   d --- F: --- r                                                           
+Convert signed double number to floating point.
+
 DABS   d --- ud                                                                
 ud is the absolute value of d.
 
@@ -595,8 +602,88 @@ EXPECT   c-addr u ---
 Read a line from the terminal to a buffer at c-addr with length u.
 Store the length of the line in SPAN.
 
+F!   addr ----. F: r ---                                                       
+Write a floating point number to memory, which was taken from the FP stack.
+
+F*   F: r1 r2 --- r3                                                           
+Multiply floating point numbers r1 and r2, giving r3    
+
+F+   F: r1 r2 --- r3                                                           
+Add floating point numbers r1 and r2, giving r3
+
+F,   F: r ---                                                                  
+Add the floating point number r to the dictionary.    
+
+F-   F: r1 r2 --- r3                                                           
+Subtract floating point numbers r1 and r2, giving r3    
+
+F-EXP!   n --- F: r --- r                                                      
+Store binary exponent into a number. Clamp to minimum and maximum value.
+
+F-EXP@   --- n F: r --- r                                                      
+Extract binary the exponent from a number, convert to signed integer.
+
+F-ISINF   --- n : F: r --- r                                                   
+check if the number is infinity or NaN
+
+F.   F: --- r                                                                  
+Print a floating point number in normal (non-scientific) notation.    
+
+F.R   u1 u2 --- F: r ---                                                       
+Print a floating point number with u2 digits after the decimal point and
+n1 positions total, right-justified (like printf %9.5f notation)
+
+F.S   ---                                                                      
+Print the contents of the floating point stack.
+
+F/   F: r1 r2 --- r3                                                           
+Divide floating point numbers r1 and r2, giving r3    
+
+F0   --- addr                                                                  
+Address of bottom of floating point stack.
+Address below which top of floating point stack must stay. 
+
+F0<   --- f  F: r -- -                                                         
+Test if floating point number is less than 0    
+
+F0=   --- f  F: r -- -                                                         
+Test if floating point number is equal to zero.    
+
+F=   --- f F: r1 r2 ---                                                        
+Return true if r1 is equal to r2.
+
+F>   --- f F: r1 r2 ---                                                        
+Return true if r1 is greater than r2.
+
+F>D   --- d : r ---                                                            
+Convert floating point number to signed double, return -2**47 if out of range
+
+F>UD   --- ud F: r ---                                                         
+Convert floating point to unsigned double, return 2**48-1 if out of range
+
+F@   addr --- , F: --- r                                                       
+Read a floating point number from memory and add it to the FP stack.
+
+FABS   F: r1 --- r2                                                            
+Take the absolute value of the floating point number.    
+
+FALIGN   ---                                                                   
+align the dictionary pointer to align to a float addres, no-op.    
+
+FALIGNED   addr1 -- addr2                                                      
+increment address to next float-aligned address, no-op.    
+
 FALSE   --- 0                                                                  
 Constant 0, indicates FALSE
+
+FDEPTH   --- n                                                                 
+Return the depth of the FP stack    
+
+FDROP   F: r ----                                                              
+Remove top from the FP stack    
+
+FDUP   F: r --- r r                                                            
+Duplicate top item on the FP stack.    
 
 FENCE   --- a-addr                                                             
 Address below which we are not allowed to forget.
@@ -606,6 +693,9 @@ Check end-of-file.
 
 FGETC   fid --- c|-1                                                           
 Read a single character from a file or return -1 for EOF.
+
+FI**   n --- F: r1 ---r2                                                       
+Raise a floating point number to an integer power.
 
 FILE-POSITION   fid --- ud ior                                                 
 Return the file position. Currently unimplemented.    
@@ -622,13 +712,40 @@ counted string at c-addr. If not found return the name address and 0.
 If found return the execution token xt and -1 if the word is non-immediate
 and 1 if the word is immediate.
 
+FLIT   F: --- r                                                                
+Runtime routine for FP literals.    
+
 FLOAD   "ccc" ---                                                              
 Make the file on the command line the current file and include it.
+
+FLOAT+   addr1 --- addr2                                                       
+Point the address to the next float     
+
+FLOATS   n --- n2                                                              
+Compute the number of bytes occupied by n floats.
+
+FLOOR   --- F: r1 --- r2                                                       
+Return the floor (round towards -infinity) of floating point number.
 
 FM/MOD   d n1 --- nrem nquot                                                   
 Divide signed double number d by single number n1, giving quotient and
 remainder. Round always down (floored division),
 remainder has same sign as divisor.
+
+FMAX   F: r1 r2 --- r3                                                         
+Return the maximum of r1 and r2
+
+FMIN   F: r1 r2 --- r3                                                         
+Return the minimum of r1 and r2
+
+FNEGATE   F; r1 --- r2                                                         
+Negate the floating point number.    
+
+FNUMBER-EXEC   c-addr ---- c-addr 0 | -1                                       
+Code to handle float literals in the interpreter.    
+
+FNUMBER-VECTOR   --- addr                                                      
+Floating point stack pointer
 
 FORGET   "ccc" ---                                                             
 Remove word "ccc" from the dictionary, and anything defined later.
@@ -640,8 +757,29 @@ FORTH-WORDLIST   --- addr
 This array holds pointers to the last definition of each thread in the Forth
 word list.
 
+FOVER   F: r1 r2 --- r1 r2 r1                                                  
+Duplicate second item on the FP stack.    
+
 FPUTC   c fid ---                                                              
 Put a single character into a file.
+
+FROT   F: r1 r2 r3 --- r2 r3 r1                                                
+Rotate top three items on the FP stack
+
+FROUND   --- F: r1 --- r2                                                      
+Return the number rounded to the nearest integer. Round to even if
+
+FS.   F: --- r                                                                 
+Print a floating point number in scientific notation.    
+
+FSQRT   F: r1  --- r2                                                          
+Compute the square root.    
+
+FSWAP   F: r1 r2 --- r2 r1                                                     
+Swap top two items on the FP stack
+
+FTRUNC-ODD   --- n  F: r1 --- r2                                               
+Truncte r1 towards zero, also return 1 if integer number is odd.
 
 GET-ORDER   --- w1 w2 ... wn n                                                 
 Return all wordlists in the search order, followed by the count.
@@ -719,6 +857,10 @@ Invert all the bits of x1 (one's complement)
 
 IS   xt "ccc" ---                                                              
 Set the word to be executed by the deferred word.    
+
+IS-FLOAT-LIT?   c-addr --- c-addr f                                            
+Test if the counted string at c-addr can be a floating point
+literal. BASE has to be 10 and the string has to contain an E.
 
 J   ---n                                                                       
 Get loop variable of next outer loop.    
@@ -944,6 +1086,15 @@ part of BEGIN WHILE REPEAT construction.
 REPOSITION-FILE   ud fid --- ior                                               
 Position the file indicated by fid to the offset indicated by ud.    
 
+REPRESENT   c-addr u --- n flag1 flag2 F: r ---                                
+Convert floating point nunmber to a string of decimal dtgits at c-addr
+(length is u).
+n is the base 10 exponent. 0 is decimal point should be just before the
+digits, +n means the decimal point should be after n digits, -n means
+decimal point should be n zeros to the left of the digits returned.
+Flag1 is the sign (true for negative), flag2 is set if there was a valid
+number (not infinity or NaN)
+
 REQUIRE   "ccc" ---                                                            
 Parse file name from source file and load that if not already loaded.    
 
@@ -997,9 +1148,6 @@ It is a zero-length string if c was not found.
 SEARCH-WORDLIST   c-addr u wid --- 0 | xt 1 | xt -1                            
 Search the wordlist with address wid for the name c-addr u.
 Return 0 if not found, the execution token xt and -1 for non-immediate
-
-SEE   "ccc" ---                                                                
-Decompile the dictionary entry specified by "ccc" and show it.
 
 SET-ORDER   w1 w2 ... wn n ---                                                 
 Set the search order to the n wordlists given on the stack.
@@ -1069,6 +1217,9 @@ Store value C into byte offset idx in the system variabled
 SYSVARS@   idx --- c                                                           
 Read value C from byte offset idx in the system variabled    
 
+THE                                                                            
+Vector to contain code that handles FP literals.
+
 THEN   x ---                                                                   
 End an IF THEN or IF ELSE THEN construction.
 
@@ -1105,6 +1256,9 @@ f is true if and only if unsigned number u1 is less than u2.
 
 U>   u1 u2 --- f                                                               
 f is true if and only if the unsigned number u1 is greater than u2.
+
+UD>F   ud --- F: ---- r                                                        
+Convert unsigned double number to floating point.
 
 UM*   u1 u2 --- ud                                                             
 Multiply two unsigned numbers, giving double result.

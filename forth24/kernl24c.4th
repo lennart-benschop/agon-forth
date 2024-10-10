@@ -2,6 +2,7 @@
 \ copyleft (c) 1994-2014 by the sbc09 team, see AUTHORS for more details.
 \ copyleft (c) 2022 L.C. Benschop for Cerberus 2080.
 \ copyleft (c) 2023 L.C. Benschop Agon FORTH
+\ copyleft (c) 2024 L.C. Benschop Add hooks for floating point.
 \ license: GNU General Public License version 3, see LICENSE for more details.
 ADD-SOURCE-FILE /forth24/kernl24c.4th
 CROSS-COMPILE
@@ -389,9 +390,29 @@ VARIABLE POCKET ( --- a-addr )
 
 \ PART 14: TOP LEVEL OF INTERPRETER
 
+\ Add the very minimum of floating point support, so that it can be
+\ hooked into the interpreter.
+VARIABLE F0 ( --- addr)
+\G Address of bottom of floating point stack.
+\G Address below which top of floating point stack must stay. 
+VARIABLE FP ( --- addr)
+\G Floating point stack pointer
+VARIABLE FNUMBER-VECTOR ( --- addr)
+\G Vector to contain code that handles FP literals.
+\ The routine inside FNUMBER-VECTOR:
+\ ( c-addr ---- c-addr 0 | -1)
+\ IF unsuccesful, keep the address/length of the word on the stack and push 0
+\ If succesful, drop aaddr/length return a true flag.
+\ -      Parse the string a an FP number, only if BASE contains 10 and the
+\        string contains the E character.
+\ -      IF STATE is set, then compile as an FP literal.
+\ -      Otherwise leave the parsed FP number on the FP stack.
+
 : ?STACK ( ---)
 \G Check for stack over/underflow and abort with an error if needed.
-  DEPTH DUP 0< -4 ?THROW 255 > -3 ?THROW HERE 128 + $8FE00 U> -5 ?THROW ;
+    DEPTH DUP 0< -4 ?THROW 255 > -3 ?THROW HERE 128 + $8FE00 U> -5 ?THROW
+    FP @ F0 @ U< -54 ?THROW ;
+
 
 : INTERPRET ( ---)
 \G Interpret words from the current source until the input source is exhausted.
@@ -407,11 +428,18 @@ VARIABLE POCKET ( --- a-addr )
      EXECUTE
     THEN
    ELSE DROP
-    NUMBER? 0= -13 ?THROW
-    DPL @ 1+ IF
-     STATE @ IF SWAP LITERAL LITERAL THEN
+    FNUMBER-VECTOR @ IF
+	FNUMBER-VECTOR @ EXECUTE	    
     ELSE
-     DROP STATE @ IF LITERAL THEN
+	0 \ Always fals, FP literal not handled.
+    THEN
+    0= IF \ FP number not handled? 
+      NUMBER? 0= -13 ?THROW 
+      DPL @ 1+ IF
+        STATE @ IF SWAP LITERAL LITERAL THEN
+      ELSE
+        DROP STATE @ IF LITERAL THEN
+      THEN
     THEN
    THEN  ?STACK
   REPEAT   DROP
@@ -572,7 +600,7 @@ VARIABLE NESTING
 :  WARM ( ---)
 \G This word is called when an error occurs. Clears the stacks, sets
 \G BASE to decimal, closes the files and resets the search order.
-    R0 @ RP! S0 @ SP! DECIMAL
+    R0 @ RP! S0 @ SP! F0 @ FP ! DECIMAL
     9 1 DO I CLOSE-FILE DROP LOOP  
     2 #ORDER !
     FORTH-WORDLIST CONTEXT !
@@ -585,8 +613,8 @@ VARIABLE NESTING
 : F-STARTUP
     \G This is the first colon definition called after a (cold) startup.
     AT-STARTUP @ 0= IF
-      ." Agon 24-bit eZ80 Forth v0.20, 2024-05-25 GPLv3" CR
-      ." Copyright (C) 2023 L.C. Benschop, Brad Rodriguez, S. Jackson" CR
+      ." Agon 24-bit eZ80 Forth v0.30, 2024-10-10 GPLv3" CR
+      ." Copyright (C) 2024 L.C. Benschop, Brad Rodriguez, S. Jackson" CR
     THEN	
     0 SYSVARS 5 + C!
     0 HERE C!

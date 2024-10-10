@@ -27,6 +27,14 @@
     DUP @ . CELL+ 
 ;
 
+[DEFINED] F. [IF]
+: DECODE-FLIT ( ip1 --- ip2 )
+    DUP F@ F. FLOAT+ ;
+[ELSE]
+: DECODE-FLIT ;
+: FLIT ;
+[THEN]
+
 : DECODE-STRING ( ip1 --- ip2)
     COUNT 2DUP TYPE '"' EMIT SPACE + 
 ;
@@ -57,7 +65,12 @@
 			IF
 			    DROP DECODE-POSTPONE
 			ELSE
-			    DROP
+                            DUP ['] FLIT =
+                            IF
+                              DROP DECODE-FLIT
+                            ELSE
+			      DROP
+                            THEN
 			THEN
 		    THEN
 		THEN

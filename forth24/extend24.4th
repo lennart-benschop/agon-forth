@@ -226,7 +226,7 @@ CONSTANT ROOT-WORDLIST ( --- wid )
   BASE @ >R 16 BASE ! CR
   DUP 0 <# # # # # # # #> TYPE ." : "
   16 0 DO
-   DUP I + C@ 0 <# # # #> TYPE
+   DUP I + C@ 0 <# # # #> TYPE SPACE
   LOOP
   16 0 DO
    DUP I + C@ DUP 32 < OVER 127 = OR IF DROP ." ." ELSE EMIT THEN
@@ -303,6 +303,7 @@ DEFINITIONS
 -39 MESS" Bad system command"
 -40 MESS" Directory does not exist"
 -41 MESS" Unimplemented system call"
+-54 MESS" Floating point stack underflow"
 \ PART 5: Miscellaneous words
 
 : 2CONSTANT  ( d --- )
@@ -503,6 +504,7 @@ DEFINITIONS
 CAPS ON
 
 INCLUDE /forth24/asmez80.4th
+INCLUDE /forth24/float24.4th
 
 REQUIRE see.4th
 

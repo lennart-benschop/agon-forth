@@ -12,7 +12,7 @@ This FORTH system is designed to run on the Agon Light computer and it runs in 2
 A useful introduction to FORTH can be found here. 
 http://galileo.phys.virginia.edu/classes/551.jvn.fall01/primer.htm
 The FORTH system does not have all features mentioned in that document, such
-as local variables and floating point.
+as local variables.
 
 ### Package contents
 
@@ -30,6 +30,7 @@ The `forth24` subdirectory contains the following files:
 * metaez80.4th. The metacompiler, used to generate Agon eZ80 FORTH from
   source.
 * asmez80.4th. Source of the FORTH assembler.
+* float24.4th. Source of the floating point package.
 * kernl24a.4th, kernl24b.4th, kernl24c.4th, and extend80.4th: sourcees of
   Agon Z80 FORTH.
 
@@ -99,6 +100,14 @@ What FORTH replied to you:
 `276` is the result of the `.` command the printed result of the multiplication.
 `OK` is a response to tell that there were no errors.
 
+You can do floating point numbers as well, for example:
+```
+12.5e 4e f+ f. 16.500000000000 OK
+```
+Floating point numbers need to have an E in them, either trailing or suffixed
+by a decimal exponent, like 1e3 to represent 1000 or 1e-3 to represent 1/1000.
+Floating point numbers are on a separate stack.
+
 You can add new words to the FORTH language as follows. Type the following
 commands:
 `: SHOW-NUMBERS 20 0 DO I . LOOP ;`
@@ -154,6 +163,11 @@ DUP .S 1 2 3 4 4 OK
 + SWAP - .S 1 2 5 OK
 DROP DROP DROP .S Empty
 ```
+
+`F.S`
+
+This is like `.S`, but it shows the numbers on the floating point
+stack instead.
 
 `WORDS`
 
