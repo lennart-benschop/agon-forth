@@ -608,6 +608,9 @@ Write a floating point number to memory, which was taken from the FP stack.
 F*   F: r1 r2 --- r3                                                           
 Multiply floating point numbers r1 and r2, giving r3    
 
+F**   F: r1 r2 --- r3                                                          
+Raise r1 to the power r2. r1 must be positive
+
 F+   F: r1 r2 --- r3                                                           
 Add floating point numbers r1 and r2, giving r3
 
@@ -673,8 +676,23 @@ align the dictionary pointer to align to a float addres, no-op.
 FALIGNED   addr1 -- addr2                                                      
 increment address to next float-aligned address, no-op.    
 
+FALOG   F: r1 --- r2                                                           
+10 to the power of X (inverse base 10 logarithm)
+
 FALSE   --- 0                                                                  
 Constant 0, indicates FALSE
+
+FASIN   F: r1 --- r2                                                           
+Inverse sine of r1, return angle in range -pi/2..pi/2
+
+FATAN   F: r1 --- r2                                                           
+Inverse tangent of r1, return angle in range -pi/2..pi/2    
+
+FCOS   F: r1 --- r2                                                            
+Cosine of r1    
+
+FDEG   F: r1 --- r2                                                            
+Convert angle from radians to degrees.
 
 FDEPTH   --- n                                                                 
 Return the depth of the FP stack    
@@ -690,6 +708,9 @@ Address below which we are not allowed to forget.
 
 FEOF   fid --- f                                                               
 Check end-of-file.
+
+FEXP   F: r1 --- r2                                                            
+Compute e**r1, the inverse of the natural logarithm.
 
 FGETC   fid --- c|-1                                                           
 Read a single character from a file or return -1 for EOF.
@@ -715,6 +736,9 @@ and 1 if the word is immediate.
 FLIT   F: --- r                                                                
 Runtime routine for FP literals.    
 
+FLN   F: r1 --- r2                                                             
+Compute the natural logarithm of r1.
+
 FLOAD   "ccc" ---                                                              
 Make the file on the command line the current file and include it.
 
@@ -723,6 +747,9 @@ Point the address to the next float
 
 FLOATS   n --- n2                                                              
 Compute the number of bytes occupied by n floats.
+
+FLOG   F: r1 --- r2                                                            
+Base-10 logarithm.
 
 FLOOR   --- F: r1 --- r2                                                       
 Return the floor (round towards -infinity) of floating point number.
@@ -763,6 +790,9 @@ Duplicate second item on the FP stack.
 FPUTC   c fid ---                                                              
 Put a single character into a file.
 
+FRAD   F: r1 --- r2                                                            
+Convert angle from degrees to radians.
+
 FROT   F: r1 r2 r3 --- r2 r3 r1                                                
 Rotate top three items on the FP stack
 
@@ -772,11 +802,17 @@ Return the number rounded to the nearest integer. Round to even if
 FS.   F: --- r                                                                 
 Print a floating point number in scientific notation.    
 
+FSIN   F: r1 --- r2                                                            
+Sine of r1    
+
 FSQRT   F: r1  --- r2                                                          
 Compute the square root.    
 
 FSWAP   F: r1 r2 --- r2 r1                                                     
 Swap top two items on the FP stack
+
+FTAN   F: r1 --- r2                                                            
+Tangent of r1    
 
 FTRUNC-ODD   --- n  F: r1 --- r2                                               
 Truncte r1 towards zero, also return 1 if integer number is odd.
@@ -1149,6 +1185,9 @@ SEARCH-WORDLIST   c-addr u wid --- 0 | xt 1 | xt -1
 Search the wordlist with address wid for the name c-addr u.
 Return 0 if not found, the execution token xt and -1 for non-immediate
 
+SEE   "ccc" ---                                                                
+Decompile the dictionary entry specified by "ccc" and show it.
+
 SET-ORDER   w1 w2 ... wn n ---                                                 
 Set the search order to the n wordlists given on the stack.
 
@@ -1368,4 +1407,5 @@ comment till end of line for inclusion in glossary.
 
 ]   ---                                                                        
 Start compilation mode.
+
 

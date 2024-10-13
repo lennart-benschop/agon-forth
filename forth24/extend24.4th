@@ -505,6 +505,7 @@ CAPS ON
 
 INCLUDE /forth24/asmez80.4th
 INCLUDE /forth24/float24.4th
+INCLUDE /forth24/transcen.4th
 
 REQUIRE see.4th
 

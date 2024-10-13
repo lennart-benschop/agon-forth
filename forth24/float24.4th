@@ -262,6 +262,19 @@ CODE F0= ( --- f  F: r -- -)
     PUSH IY
     LD IY, FP ()
     LD DE, 0
+    LD A, -8 (IY+)
+    INC A
+    0= IF
+	LD A, -7 (IY+)
+	AND $7F
+	CP $7F
+	0= IF
+	    LEA IY, -8 IY+
+	    LD FP (), IY
+	    POP IY
+	    NEXT    
+	THEN
+    THEN
     LD HL, -6 (IY+)
     LD A, L
     OR H
@@ -1400,10 +1413,10 @@ FVARIABLE F-LIMIT
     DUP 1- 13 MIN EXP !  \ store precision-1 
     F-SGN >R
     F-ISINF IF
-	2DROP 0 R> 0
+	FDROP 2DROP 0 R> 0
     ELSE
 	FDUP F0= IF
-	    2DROP 1 R> -1 
+	    FDROP 2DROP 1 R> -1 
 	ELSE
 	    FABS F-EXP@ 301 1000 */ \ Convert binary exponent to base 10 exp
 	    DUP >R \ Store exponent on return stack

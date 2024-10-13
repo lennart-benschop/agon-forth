@@ -613,7 +613,7 @@ VARIABLE NESTING
 : F-STARTUP
     \G This is the first colon definition called after a (cold) startup.
     AT-STARTUP @ 0= IF
-      ." Agon 24-bit eZ80 Forth v0.30, 2024-10-10 GPLv3" CR
+      ." Agon 24-bit eZ80 Forth v0.31, 2024-10-13 GPLv3" CR
       ." Copyright (C) 2024 L.C. Benschop, Brad Rodriguez, S. Jackson" CR
     THEN	
     0 SYSVARS 5 + C!
