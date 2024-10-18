@@ -670,6 +670,9 @@ Read a floating point number from memory and add it to the FP stack.
 FABS   F: r1 --- r2                                                            
 Take the absolute value of the floating point number.    
 
+FACOS   F: r1 ... r2                                                           
+Inverse consine of r1, return angle in range 0..pi    
+
 FALIGN   ---                                                                   
 align the dictionary pointer to align to a float addres, no-op.    
 
@@ -686,7 +689,7 @@ FASIN   F: r1 --- r2
 Inverse sine of r1, return angle in range -pi/2..pi/2
 
 FATAN   F: r1 --- r2                                                           
-Inverse tangent of r1, return angle in range -pi/2..pi/2    
+Inverse tangent of r1, return angle in range -pi/2..pi/2
 
 FCOS   F: r1 --- r2                                                            
 Cosine of r1    
@@ -765,6 +768,9 @@ Return the maximum of r1 and r2
 FMIN   F: r1 r2 --- r3                                                         
 Return the minimum of r1 and r2
 
+FMOD   F: r1 r2 --- r3                                                         
+Compute r1 modulo r2
+
 FNEGATE   F; r1 --- r2                                                         
 Negate the floating point number.    
 
@@ -804,6 +810,9 @@ Print a floating point number in scientific notation.
 
 FSIN   F: r1 --- r2                                                            
 Sine of r1    
+
+FSMOD   F: r1 r2 --- r3                                                        
+Compute r1 modulo r2, symmetric around zero -r2/2 <= r3 <= r2/2
 
 FSQRT   F: r1  --- r2                                                          
 Compute the square root.    
@@ -1407,5 +1416,4 @@ comment till end of line for inclusion in glossary.
 
 ]   ---                                                                        
 Start compilation mode.
-
 

@@ -1,5 +1,6 @@
 \ Floating point wordset for eZ80 Agon FORTH.
 \ Copyright 2024, L.C. Benschop
+\ 2024-10-18: speed up F-ALIGN for large shifts, occur frequently in cordic.
 
 \ Note: VARIABLEs FP and F0 already defined in kernel.
 
@@ -493,7 +494,43 @@ SUBROUTINE F-ALIGN
     LD BC, -6 (IY+) 
     LD DE, -4 (IY+)
     LD HL, -2 (IY+) \ Load significand into 3 regs, 2 bytes each.
-    BEGIN
+    CP 8
+    U>= IF
+        CP 24  \ Do some whole register moves to avoid shifting up to 49 times
+        U>= IF  
+   	  SUB 24
+	  LD 1 (IY+), E
+	  LD C, D
+	  LD B, L
+	  LD E, H
+	  LD D, 0
+	  LD HL, 0
+       THEN
+       CP 16
+       U>= IF
+	   SUB 16
+	   LD 1 (IY+), B
+	   LD C, E
+	   LD B, D
+	   LD E, L
+	   LD D, H
+	   LD HL, 0
+       THEN
+       CP 8
+       U>= IF
+	   SUB 8
+	   LD 1 (IY+), C
+	   LD C, B
+	   LD B, E
+	   LD E, D
+	   LD D, L
+	   LD L, H
+	   LD H, 0	   
+       THEN
+    THEN   
+    AND A
+    0<> IF
+     BEGIN
 	SRL H \ Shift significand right repeatedly.
 	RR L
 	RR D
@@ -502,7 +539,8 @@ SUBROUTINE F-ALIGN
 	RR C
 	RR 1 (IY+) \ Rotate into guard digit
 	DEC A
-    0= UNTIL
+     0= UNTIL
+    THEN 
     LD -6 (IY+), BC
     LD -4 (IY+), DE
     LD -2 (IY+), HL \ Store it back    

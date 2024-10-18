@@ -1,18 +1,24 @@
 \ Floating point wordset for eZ80 Agon FORTH.
 \ Copyright 2024, L.C. Benschop
 \ Transcendental functions.
+\ 2024-10-18: speed up cordic, eliminate f*, fix sin of tiny numbers.
 
 : FMOD ( F: r1 r2 --- r3)
-\ Compute r1 modulo r2
+\G Compute r1 modulo r2
   FOVER FOVER F/ FLOOR FSWAP F* F-    
 ;
+
+: FSMOD ( F: r1 r2 --- r3)
+\G Compute r1 modulo r2, symmetric around zero -r2/2 <= r3 <= r2/2
+  FOVER FOVER F/ FROUND FSWAP F* F-    
+;
+
 
 3.141592653589793e
 FCONSTANT PI ( F: --- r)
 \ The floating point constant PI.
 PI 2e F* FCONSTANT 2PI
 PI 2e F/ FCONSTANT 0.5PI
-PI 3e F* 2e F/ FCONSTANT 1.5PI
 
 0.6931471805599453e FCONSTANT LN2
 
@@ -68,14 +74,12 @@ CREATE ATNTAB
 7.105427357601002e-15 F,
 3.552713678800501e-15 F,
 1.7763568394002505e-15 F,
-8.881784197001252e-16 F,
 
 : ATNTAB@
     FLOATS ATNTAB + F@ ;
 
 FVARIABLE FX
 FVARIABLE FY
-FVARIABLE 2P
 
 : CORDIC ( F: r ---)
 \ This is the core of the CORDIC algorithm.
@@ -87,42 +91,38 @@ FVARIABLE 2P
 \ At the end, the vector has been rotated by the angle r, but scaled by
 \ 1/COSPROD, By rotating over every angle in the table exactly once
 \ (either clockwise or counterclockwise), the scaling of the vector is constant.
-    50 0 DO
-	1.0E I NEGATE F-SCALE 2P F!
+    49 0 DO
 	FDUP F0< IF
 	    \ clockwise rotate.
 	    I ATNTAB@ F+ \ Add angle from table
-	    FX F@  FY F@ 2P F@ F* F+ \ new x
-	    FY F@  FX F@ 2P F@ F* F- \ new y
+	    FX F@  FY F@ I NEGATE F-SCALE F+ \ new x
+	    FY F@  FX F@ I NEGATE F-SCALE F- \ new y
 	    FY F! FX F!
 	ELSE
 	    \ counterclockwise rotate
 	    I ATNTAB@ F- \ Subtract angle from table.
-	    FX F@  FY F@ 2P F@ F* F- \ new x
-	    FY F@  FX F@ 2P F@ F* F+ \ new y
-  	    FY F! FX F!
+	    FX F@  FY F@ I NEGATE F-SCALE F- \ new x
+	    FY F@  FX F@ I NEGATE F-SCALE F+ \ new y
+	    FY F! FX F!
 	THEN
-    LOOP FDROP	
+    LOOP FDROP
 ;
-
+    
 \ The product of all cosines corresponding to the angles listed in ATNTAB
 \ As each of the tangents is 2**-i, each of the cosines equals.
 \ 1/sqrt(1+2**(-2*i))
 \ This value is slightly tweaked from the computed value to get sin(pi/2)==1.0
 \ exactly in our system.
-\ 0.6072529350088813e FCONSTANT COSPROD 
+\ 0.6072529350088814e FCONSTANT COSPROD 
   0.607252935008888e FCONSTANT COSPROD 
 
 
 : REDUCE-ANGLE ( F: r1 --- r2)
 \ Reduce the angle to the range -pi/2 <= r2 <= pi/2.
 \ Set FX and FY to their initial valies.
-    2PI FMOD             \ Reduce to range 0..2*pi
-    FDUP 1.5PI F> IF
-	2PI F-           \ Angles in range 1.5pi..2pi move to -pi/2..0
-    THEN
-    FDUP 0.5PI F> IF     \ Take care of angles in the range 0.5pi..1.5pi
-	PI F-            \ Subtract pi, but set FX to -1, so CORDIC will
+    2PI FSMOD             \ Reduce to range 0..2*pi
+    FDUP FABS 0.5PI F> IF     \ Take care of angles in the range 0.5pi..pi
+	F-SGN PI IF FNEGATE THEN F- \ Subtract pi, but set FX to -1, so CORDIC will
 	-1.0E FX F!      \ rotate the vector to the desired angle.
     ELSE
 	1.0E FX F!
@@ -132,7 +132,11 @@ FVARIABLE 2P
 
 : FSIN ( F: r1 --- r2)
 \G Sine of r1    
-   REDUCE-ANGLE CORDIC FY F@ COSPROD F* ;
+    REDUCE-ANGLE FDUP FABS 1.0E-5 F< IF
+	FX F@ F0< IF FNEGATE THEN
+    ELSE
+	CORDIC FY F@ COSPROD F*
+    THEN ;
 
 : FCOS ( F: r1 --- r2)
 \G Cosine of r1    
@@ -140,48 +144,55 @@ FVARIABLE 2P
 
 : FTAN ( F: r1 --- r2)
 \G Tangent of r1    
-   REDUCE-ANGLE CORDIC FY F@ FX F@ F/ ;
+    REDUCE-ANGLE FDUP FABS 1.0E-5 F< IF
+	FX F@ F0< IF FNEGATE THEN
+    ELSE
+	CORDIC FY F@ FX F@ F/
+    THEN ;
 
 : INVERSE-CORDIC ( F:  --- r)
 \ Rotate the angle represented by FX & FY  towards zero and return the angle
 \ by which it was rotated.    
     0.0E
-    50 0 DO
-	1.0E I NEGATE F-SCALE 2P F!
+    49 0 DO
 	FY F@ F0< IF
 	    \ counterclockwise rotate
 	    I ATNTAB@ F- \ Subtract angle from table.
-	    FX F@  FY F@ 2P F@ F* F- \ new x
-	    FY F@  FX F@ 2P F@ F* F+ \ new y
+	    FX F@  FY F@ I NEGATE F-SCALE F- \ new x
+	    FY F@  FX F@ I NEGATE F-SCALE F+ \ new y
   	    FY F! FX F!
 	ELSE
 	    \ clockwise rotate.
 	    I ATNTAB@ F+ \ Add angle from table
-	    FX F@  FY F@ 2P F@ F* F+ \ new x
-	    FY F@  FX F@ 2P F@ F* F- \ new y
+	    FX F@  FY F@ I NEGATE F-SCALE F+ \ new x
+	    FY F@  FX F@ I NEGATE F-SCALE F- \ new y
 	    FY F! FX F!
 	THEN
     LOOP
 ;
 
 : FATAN ( F: r1 --- r2)
-\G Inverse tangent of r1, return angle in range -pi/2..pi/2    
-    FY F! 1.0E FX F!
-    INVERSE-CORDIC ;
+\G Inverse tangent of r1, return angle in range -pi/2..pi/2
+    FDUP FABS 1.0E-5 F> IF
+	FY F! 1.0E FX F!
+	INVERSE-CORDIC
+    THEN ;
 
 : FASIN ( F: r1 --- r2)
 \G Inverse sine of r1, return angle in range -pi/2..pi/2
     FDUP FABS 1.0E F> IF
 	FDROP NAN
     ELSE
-	FDUP FDUP F* 1.0E FSWAP F- FSQRT  \ Compute consine sqrt(1-r**2) to FX
-	FX F!
-	FY F!                             \ Store r (sine) in FY  
-	INVERSE-CORDIC
+	FDUP FABS 1.0E-5 F> IF	    
+	    FDUP FDUP F* 1.0E FSWAP F- FSQRT  \ Compute consine sqrt(1-r**2) to FX
+	    FX F!
+	    FY F!                             \ Store r (sine) in FY  
+	    INVERSE-CORDIC
+	THEN
     THEN ;
 
 : FACOS ( F: r1 ... r2)
-\ Inverse consine of r1, return angle in range 0..pi    
+\G Inverse consine of r1, return angle in range 0..pi    
     FASIN 0.5PI FSWAP F- ;
     
 PI 180e F/ FCONSTANT PI/180
@@ -273,18 +284,22 @@ CREATE LNTAB
 : FLN ( F: r1 --- r2)
 \G Compute the natural logarithm of r1.
     FDUP 0.0E F> 0= IF
-	FDROP NAN NEGATE
+	FDROP NAN FNEGATE
     ELSE
-	F-EXP@ 0 F-EXP! \ Extract original exponent and force exp to 0.
-	\ Number is now between 1 and 2.
-	1.0E F- FX F! \ Subtract one store in FX, iteration gives us ln(x+1) 
-	LN2 \ Initial logaritm, at 0.
-	49 0 DO
-	    1.0E0 FX F@ F+ I NEGATE F-SCALE FX F@ F+
-	    \ Compute exp(x)-1 for next 2**-i factor
-	    FDUP 1.0E0 F< IF FX F! I LNTAB@ F- ELSE FDROP THEN
-	LOOP
-	S>D D>F LN2 F* F+ \ add binary exponent times ln2.
+	FDUP 1.0E F= IF
+	    FDROP 0.0E
+	ELSE
+	    F-EXP@ 0 F-EXP! \ Extract original exponent and force exp to 0.
+	    \ Number is now between 1 and 2.
+	    1.0E F- FX F! \ Subtract one store in FX, iteration gives us ln(x+1) 
+	    LN2 \ Initial logaritm, at 0.
+	    49 1 DO
+		1.0E FX F@ F+ I NEGATE F-SCALE FX F@ F+
+		\ Compute exp(x)-1 for next 2**-i factor
+		FDUP 1.0E F< IF FX F! I LNTAB@ F- ELSE FDROP THEN
+	    LOOP
+	    S>D D>F LN2 F* F+ \ add binary exponent times ln2.
+	THEN
     THEN
 ;
 
