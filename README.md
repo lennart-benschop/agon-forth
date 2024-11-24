@@ -39,6 +39,9 @@ The examples directory contains FORTH example programs that are not specific to 
 * tester.4th and core.4th is a small test suite for Forth.
 * glosgen.4th is a program to generate glossary files.
 * squares.4th is a small example program to run on Agon FORTH.
+* sunrise.4th is a program to print calendars with sunrise and sunset times.
+  It requires floating point, so it only runs on forth24 on Agon (and on other
+  FORTH systems like gforth). On Agon it can plot sunries/sunset graphs too.
 
 ## examples_agon
 
