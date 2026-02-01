@@ -30,12 +30,12 @@
 \G f is true if and only if n1 is greater than or equal to n2.    
   < 0= ;
 
-: 0<> ( n1 n2 ---f)
-\G f is true of and only of n1 and n2 are not equal.   
+: 0<> ( n1 ---f)
+\G f is true if and only if n1 is not equal to zero.   
   0= 0= ;
 
 : WITHIN ( u1 u2  u3 --- f)
-\G f is true if u1 is greater or equal to u2 and less than u3
+\G f is true if u1 is greater or equal to u2 and less than u3.
   2 PICK U> ROT ROT U< 0= AND ;
 
 : -TRAILING ( c-addr1 u1 --- c-addr2 u2)
@@ -99,7 +99,7 @@ VARIABLE #THREADS ( --- a-addr)
 CONTEXT #ORDER @ 1- CELLS + @ CURRENT ! ;
 
 : FORTH ( --- )
-\G REplace the last wordlist in the search order with FORTH-WORDLIST
+\G Replace the last wordlist in the search order with FORTH-WORDLIST
   FORTH-WORDLIST CONTEXT #ORDER @ 1- CELLS + ! ;
 
 1 #THREADS !
@@ -514,3 +514,4 @@ DELETE /forth24/forth24.bin
 CR .( Saving system as forth24.bin ) CR
 SAVE-SYSTEM /forth24/forth24.bin
 BYE
+
